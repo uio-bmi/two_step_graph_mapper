@@ -1,0 +1,9 @@
+*.sam
+*.graphalignments
+*.txt
+*.fa
+*.swp
+.idea
+*.egg-info
+__pycache__
+*.tmp
