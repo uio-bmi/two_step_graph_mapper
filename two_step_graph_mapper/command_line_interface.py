@@ -23,12 +23,13 @@ def run_map_to_path(args):
                                        minimap_arguments=minimap_arguments)
 
 
-def run_predict_path_single_chromosome(alignment_file_name, chromosome, graph_dir, linear_ref_bonus, out_file_base_name):
+def run_predict_path_single_chromosome(alignment_file_name, chromosome, graph_dir,
+                                       linear_ref_bonus, out_file_base_name, max_nodes_to_traverse):
     sequence_graph = SequenceGraph.from_file(graph_dir + chromosome + ".nobg.sequences")
     graph = Graph.from_file(graph_dir + chromosome + ".nobg")
     linear_path = NumpyIndexedInterval.from_file(graph_dir + "/%s_linear_pathv2.interval" % chromosome)
     PathPredicter(alignment_file_name, graph, sequence_graph, chromosome, linear_path, out_file_base_name,
-                  linear_ref_bonus=linear_ref_bonus)
+                  linear_ref_bonus=linear_ref_bonus, max_nodes_to_traverse=max_nodes_to_traverse)
 
 
 def run_bwa_index(fasta_file_name):
@@ -42,7 +43,7 @@ def run_predict_path(args):
     for chromosome in chromosomes:
         logging.info("Starting process for chromosome %s " % chromosome)
         process = Process(target=run_predict_path_single_chromosome,
-                          args=(args.alignments, chromosome, args.data_dir, args.linear_ref_bonus, args.out_file_name))
+                          args=(args.alignments, chromosome, args.data_dir, args.linear_ref_bonus, args.out_file_name, args.max_nodes_to_traverse))
         process.start()
         processes.append(process)
 
@@ -102,6 +103,7 @@ def run_argument_parser(args):
     subparser_predict.add_argument("-l", "--linear-ref-bonus", help="Bonus score for linear reference. Used to favour the linear reference.", default=1, type=int, required=False)
     subparser_predict.add_argument("-o", "--out-file-name", help="Output file name", required=True)
     subparser_predict.add_argument("-s", "--skip-bwa-index", default=False, required=False, help="Set to True to skip creation of bwa index")
+    subparser_predict.add_argument("-m", "--max-nodes-to-traverse", default=None, required=False, help="For debugging/testing. Max number of nodes in graph to traverse.")
     subparser_predict.set_defaults(func=run_predict_path)
 
     subparser_map = subparsers.add_parser("map_to_path", help="Map to a predicted path")

@@ -6,7 +6,7 @@ import logging
 
 class PathPredicter:
     def __init__(self, alignment_file_name, graph, sequence_graph, chromosome, linear_interval_path,
-                 out_file_base_name, linear_ref_bonus=1):
+                 out_file_base_name, linear_ref_bonus=1, max_nodes_to_traverse=None):
         self.alignment_file_name = alignment_file_name
         self.graph = graph
         self.sequence_graph = sequence_graph
@@ -15,6 +15,7 @@ class PathPredicter:
         self.out_file_base_name = out_file_base_name
         self.linear_path_nodes = linear_interval_path.nodes_in_interval()
         self.linear_ref_bonus = linear_ref_bonus
+        self.max_nodes_to_traverse = max_nodes_to_traverse
         self.alignments = None
         self._read_alignments()
         self.edge_counts = None
@@ -74,7 +75,8 @@ class PathPredicter:
                 logging.info("%d nodes in graph traversed on chrom %s" % (i, self.chromosome))
             i += 1
 
-            if i > 100000:
+            if self.max_nodes_to_traverse is not None and i > self.max_nodes_to_traverse:
+                logging.warning("Stopped traversing before end because max node to traverse was set")
                 break
 
             path.append(node)
