@@ -6,10 +6,20 @@ import sys
 from multiprocessing import Process
 from offsetbasedgraph import Graph, SequenceGraph, NumpyIndexedInterval, IntervalCollection
 from .path_predicter import PathPredicter
+from rough_graph_mapper.util import run_hybrid_between_bwa_and_minimap
 logging.basicConfig(level=logging.DEBUG)
+
 
 def main():
     run_argument_parser(sys.argv[1:])
+
+
+def run_map_to_path(args):
+    n_threads = args.n_threads
+    minimap_arguments = "-t %d -k19 -w11 --sr --frag=yes -A2 -B8 -O12,32 -E2,1 -r50 -p.5 -f90000,180000 -n2 -m20 -s40 -g200 -2K50m --heap-sort=yes -N 7 -a" % n_threads
+    run_hybrid_between_bwa_and_minimap(args.linear_ref, args.fasta, args.output_file_name,
+                                       bwa_arguments="-D 0.05 -h 10000000 -t %d" % args.n_threads,
+                                       minimap_arguments=minimap_arguments)
 
 
 def run_predict_path_single_chromosome(alignment_file_name, chromosome, graph_dir, linear_ref_bonus, out_file_base_name):
@@ -87,12 +97,18 @@ def run_argument_parser(args):
     subparser_predict.add_argument("-d", "--data-dir", help="", required=True)
     subparser_predict.add_argument("-a", "--alignments", help="A vg json file containing alignments (converted with vg view -aj file.gam > file.json OR a offsetbasedgraph json interval file.", required=True)
     subparser_predict.add_argument("-c", "--chromosomes", help="Comma-separated list of chromosomes", required=True)
-    subparser_predict.add_argument("-t", "--n_threads", help="Number of threads to use", type=int, default=8, required=False)
+    subparser_predict.add_argument("-t", "--n-threads", help="Number of threads to use", type=int, default=8, required=False)
     subparser_predict.add_argument("-l", "--linear-ref-bonus", help="Bonus score for linear reference. Used to favour the linear reference.", default=1, type=int, required=False)
     subparser_predict.add_argument("-o", "--out-file-name", help="Output file name", required=True)
     subparser_predict.add_argument("-s", "--skip-bwa-index", default=False, required=False, help="Set to True to skip creation of bwa index")
     subparser_predict.set_defaults(func=run_predict_path)
 
+    subparser_map = subparsers.add_parser("map_to_path", help="Map to a predicted path")
+    subparser_map.add_argument("-r", "--linear-ref", help="Linear reference fasta file name. Typically the file outputed by predict_path.", required=True)
+    subparser_map.add_argument("-f", "--fasta", help="Fasta file to map", required=True)
+    subparser_map.add_argument("-o", "--output_file_name", help="Name of output sam file", required=True)
+    subparser_map.add_argument("-t", "--n-threads", help="Number of threads to use", type=int, default=8, required=False)
+    subparser_map.set_defaults(func=run_map_to_path)
 
     if len(args) == 0:
         parser.print_help()
