@@ -74,7 +74,7 @@ two_step_graph_mapper predict_path -t $threads -d $obg_graph_dir -a traversemapp
 two_step_graph_mapper map_to_path -r predicted_path.fa -f sim.fa -o two_step_graph_mapper.sam
 two_step_graph_mapper convert_to_reference_positions -s two_step_graph_mapper.sam -d $obg_graph_dir/ -l predicted_path -c $chromosomes -o two_step_graph_mapper_on_reference.sam
 awk '$2!=2048 && $2 != 2064' two_step_graph_mapper_on_reference.sam | grep -v ^@ | pv -l | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort >two_step_graph_mapper.pos
-join two_step_graph_mapper.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold >two_step_graph_mapper.compare
+join two_step_graph_mapper.pos sim.gam.truth.tsv | vg_sim_pos_compare.py $threshold >two_step_graph_mapper.compare
 
 # 2) Normal linear mapping
 two_step_graph_mapper map_to_path -t $threads -r ../data/hg19_chr1-Y.fa -f sim.fa -o bwa.sam

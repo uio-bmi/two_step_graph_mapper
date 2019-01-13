@@ -103,7 +103,7 @@ def run_argument_parser(args):
     subparser_predict.add_argument("-l", "--linear-ref-bonus", help="Bonus score for linear reference. Used to favour the linear reference.", default=1, type=int, required=False)
     subparser_predict.add_argument("-o", "--out-file-name", help="Output file name", required=True)
     subparser_predict.add_argument("-s", "--skip-bwa-index", default=False, required=False, help="Set to True to skip creation of bwa index")
-    subparser_predict.add_argument("-m", "--max-nodes-to-traverse", default=None, required=False, help="For debugging/testing. Max number of nodes in graph to traverse.")
+    subparser_predict.add_argument("-m", "--max-nodes-to-traverse", type=int, default=None, required=False, help="For debugging/testing. Max number of nodes in graph to traverse.")
     subparser_predict.set_defaults(func=run_predict_path)
 
     subparser_map = subparsers.add_parser("map_to_path", help="Map to a predicted path")
