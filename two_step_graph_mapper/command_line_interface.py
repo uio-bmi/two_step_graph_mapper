@@ -7,6 +7,7 @@ from multiprocessing import Process
 from offsetbasedgraph import Graph, SequenceGraph, NumpyIndexedInterval, IntervalCollection
 from .path_predicter import PathPredicter
 from rough_graph_mapper.util import run_hybrid_between_bwa_and_minimap
+from .project_alignments import run_project_alignments
 logging.basicConfig(level=logging.DEBUG)
 
 
@@ -109,6 +110,14 @@ def run_argument_parser(args):
     subparser_map.add_argument("-o", "--output_file_name", help="Name of output sam file", required=True)
     subparser_map.add_argument("-t", "--n-threads", help="Number of threads to use", type=int, default=8, required=False)
     subparser_map.set_defaults(func=run_map_to_path)
+
+    subparser_project = subparsers.add_parser("convert_to_reference_positions", help="Convert positions in a mapped sam file to positions on reference genome")
+    subparser_project.add_argument("-s", "--sam", help="Input sam file", required=True)
+    subparser_project.add_argument("-d", "--data-dir", help="Data direcoty containing the linear path intervals for the graphs", required=True)
+    subparser_project.add_argument("-l", "--linear-paths-base-name", help="Base name for linear paths. Same as --out-file-name used for predict_path.", required=True)
+    subparser_project.add_argument("-c", "--chromosomes", required=True)
+    subparser_project.add_argument("-o", "--out-sam", required=True, help="Name of sam file to write modified alignments to")
+    subparser_project.set_defaults(func=run_project_alignments)
 
     if len(args) == 0:
         parser.print_help()
