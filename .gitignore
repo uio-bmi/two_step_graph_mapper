@@ -6,4 +6,7 @@
 .idea
 *.egg-info
 __pycache__
+*.fa.*
+*.intervalcollection*
 *.tmp
+*.fasta
