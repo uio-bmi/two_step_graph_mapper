@@ -1,7 +1,7 @@
 #!/bin/bash
 # Partly copy from vg's benchmark script (https://github.com/vgteam/vg/blob/master/scripts/map-sim)
 
-if [ $# -ne 13 ];
+if [ $# -ne 15 ];
 then
     echo "usage: "$(basename $0) "[output-dir] [fasta-ref] [vg-ref] [vg-pan] [hap0-base] [hap1-base] [sim-base] [sim-ref] [threads] [sim-read-spec] [sim-seed] [bp-threshold] [vg-map-opts]"
     echo "example: "$(basename $0) 'SGRP2/SGD_2010.fasta SGRP2/SGRP2-cerevisiae.pathonly SGRP2/SGRP2-cerevisiae SGRP2/SGRP2-cerevisiae BC187-haps0 BC187-haps1 BC187 BC187.ref 4 "-n 50000 -e 0.01 -i 0.002 -l 150 -p 500 -v 50" 27 150 "-u 16"'
@@ -22,6 +22,7 @@ seed=${11}
 threshold=${12}
 vg_map_opts=${13}
 obg_graph_dir=${14}
+chromosomes=${15}
 
 pan_xg=$pan.xg
 pan_gcsa=$pan.gcsa
@@ -68,22 +69,40 @@ fi
 # Map these simulated reads in three different ways:
 
 # 1) Two step mapper
-chromosomes="1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,X"
-rough_graph_mapper traversemapper -t 70 -r ../data/hg19_chr1-Y.fa -f sim.fa -d $obg_graph_dir -c $chromosomes -o traversemapped.graphalignments
-two_step_graph_mapper predict_path -t $threads -d $obg_graph_dir -a traversemapped.graphalignments -c $chromosomes -o predicted_path
-two_step_graph_mapper map_to_path -r predicted_path.fa -f sim.fa -o two_step_graph_mapper.sam
+#chromosomes="1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,X"
+# Map the two different ways
+rough_graph_mapper map_linear_to_graph --skip-mapq-adjustment True -t 70 -r $fasta -f sim.fa -d $obg_graph_dir -c $chromosomes -o linear_to_graph_mapped.graphalignments
+rough_graph_mapper traversemapper -s True -t 70 -r $fasta -f sim.fa -d $obg_graph_dir -c $chromosomes -o traversemapped.graphalignments
+
+# Filter
+rough_graph_mapper filter --min-mapq 50 -a traversemapped.graphalignments > traversemapped.filtered.graphalignments
+
+two_step_graph_mapper predict_path -t $threads -d $obg_graph_dir -a traversemapped.filtered.graphalignments -c $chromosomes -o predicted_path_traversemapped
+two_step_graph_mapper predict_path -t $threads -d $obg_graph_dir -a linear_to_graph_mapped.graphalignments -c $chromosomes -o predicted_path
+
+# Map to path by using linear to graph mapped path
+two_step_graph_mapper map_to_path -t $threads -r predicted_path.fa -f sim.fa -o two_step_graph_mapper.sam
+
+# Use traversemapped path
+two_step_graph_mapper map_to_path -t $threads -r predicted_path_traversemapped.fa -f sim.fa -o two_step_graph_mapper_traversemapped.sam
+
+# Convert to linear pos
 two_step_graph_mapper convert_to_reference_positions -s two_step_graph_mapper.sam -d $obg_graph_dir/ -l predicted_path -c $chromosomes -o two_step_graph_mapper_on_reference.sam
 awk '$2!=2048 && $2 != 2064' two_step_graph_mapper_on_reference.sam | grep -v ^@ | pv -l | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort >two_step_graph_mapper.pos
 join two_step_graph_mapper.pos sim.gam.truth.tsv | vg_sim_pos_compare.py $threshold >two_step_graph_mapper.compare
 
+two_step_graph_mapper convert_to_reference_positions -s two_step_graph_mapper_traversemapped.sam -d $obg_graph_dir/ -l predicted_path_traversemapped -c $chromosomes -o two_step_graph_mapper_on_reference_traversemapped.sam
+awk '$2!=2048 && $2 != 2064' two_step_graph_mapper_on_reference_traversemapped.sam | grep -v ^@ | pv -l | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort >two_step_graph_mapper_traversemapped.pos
+join two_step_graph_mapper_traversemapped.pos sim.gam.truth.tsv | vg_sim_pos_compare.py $threshold >two_step_graph_mapper_traversemapped.compare
+
 # 2) Normal linear mapping
-two_step_graph_mapper map_to_path -t $threads -r ../data/hg19_chr1-Y.fa -f sim.fa -o bwa.sam
-awk '$2!=2048 && $2 != 2064' bwa.sam | grep -v ^@ | pv -l | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort >bwa_mem-se.pos
-join bwa_mem-se.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold >bwa-se.compare
+two_step_graph_mapper map_to_path -t $threads -r $fasta -f sim.fa -o bwa.sam
+awk '$2!=2048 && $2 != 2064' bwa.sam | grep -v ^@ | pv -l | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort >bwa.pos
+join bwa.pos sim.gam.truth.tsv | vg_sim_pos_compare.py $threshold >bwa.compare
 
 # 3) vg
 echo "vg pan single mappping"
 time vg map $vg_map_opts -G sim.gam -x $pan_xg -g $pan_gcsa -t $threads --refpos-table | sort  > vg-pan-se.pos
-join vg-pan-se.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold >vg-pan-se.compare
+join vg-pan-se.pos sim.gam.truth.tsv | vg_sim_pos_compare.py $threshold >vg-pan-se.compare
 
 

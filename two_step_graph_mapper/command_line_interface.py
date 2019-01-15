@@ -1,4 +1,6 @@
 import logging
+import os
+from tqdm import tqdm
 import shutil
 import subprocess
 import argparse
@@ -8,7 +10,7 @@ from offsetbasedgraph import Graph, SequenceGraph, NumpyIndexedInterval, Interva
 from .path_predicter import PathPredicter
 from rough_graph_mapper.util import run_hybrid_between_bwa_and_minimap
 from .project_alignments import run_project_alignments
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
 def main():
@@ -40,6 +42,10 @@ def run_bwa_index(fasta_file_name):
 def run_predict_path(args):
     chromosomes = args.chromosomes.split(",")
     processes = []
+    if not os.path.isfile(args.alignments):
+        logging.error("Input alignments file %s does not exist" % args.alignments)
+        sys.exit()
+
     for chromosome in chromosomes:
         logging.info("Starting process for chromosome %s " % chromosome)
         process = Process(target=run_predict_path_single_chromosome,
@@ -52,7 +58,8 @@ def run_predict_path(args):
 
     # Merge all fasta files that were produces
     out_fasta = open(args.out_file_name + ".fa", "w")
-    for chromosome in chromosomes:
+    logging.info("Merging fasta files")
+    for chromosome in tqdm(chromosomes):
         with open(args.out_file_name + "_" + chromosome + ".fasta") as f:
             out_fasta.write(f.read())
 
