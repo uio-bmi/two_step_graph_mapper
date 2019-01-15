@@ -37,13 +37,16 @@ two_step_graph_mapper convert_to_reference_positions -s aligned_reads.sam -d gra
 This test acts as an integration test, to see that everything is working and to get a quick overview of the
 performance. The test takes about 30 minutes to run on a laptop, and will produce plots similar to those below:
 
-All necessary graphs for running this test are included in this repository.
+All necessary graphs for running this test are included in this repository. 
+The only thing you need is [vg](https://github.com/vgteam/vg) installed on your system.
 Simply run the run_benchmarking.sh script like this, standing in the mhc_benchmark folder:
 ```bash
-cd tests/mhc_benchmark
-../run_benchmarks.sh 
+cd benchmarking/mhc_benchmark
+../run_benchmark.sh None ../mhc_graph_data/linear_ref.fa None ../mhc_graph_data/wg ../mhc_graph_data/giab_chr6_haplotype0 ../mhc_graph_data/giab_chr6_haplotype1 \
+       ../mhc_graph_data/giab ../mhc_graph_data/giab_reference 75 "--forward-only -n 250000 -e 0.01 -i 0.002 -l 150" 2358792 150 "" ../mhc_graph_data/ 6  
 ```
 Three plots will be produces in the folder you are running from: roc-builder.png, roc-novel-builder.png and roc-known-builder.png.
+If the vg roc-plot scripts fail with some xml error, you might need to install lib-xml (on ubuntu: `sudo apt-get install libxml2-dev`)
 
 ### Thorough benchmarking on whole genome 1000 genomes graphs
 This benchmark takes about 10-15 hours to run. First download all the graphs and graph indices (these are not included in this repo). 

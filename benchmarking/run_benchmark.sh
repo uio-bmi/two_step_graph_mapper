@@ -1,5 +1,11 @@
 #!/bin/bash
+set -e
 # Partly copy from vg's benchmark script (https://github.com/vgteam/vg/blob/master/scripts/map-sim)
+
+#sudo docker pull quay.io/vgteam/vg:v1.12.1
+#alias dockervg="sudo docker run quay.io/vgteam/vg:v1.12.1 vg"
+    #sudo docker run quay.io/vgteam/vg:v1.12.1 vg "$@"
+#}
 
 if [ $# -ne 15 ];
 then
@@ -51,8 +57,8 @@ then
     cat sim1.gam sim2.gam >sim.gam
 
     rm -f sim1.gam sim2.gam
-    vg annotate -p -x $sim_xg -a sim.gam | vg view -a - | jq -c -r '[ .name, .refpos[0].name, .refpos[0].offset ] | @tsv' | pv -l | sort >truth.tsv
-    vg annotate -n -x $sim_ref_xg -a sim.gam | tail -n+2 | pv -l | sort >novelty.tsv
+    vg annotate -p -x $sim_xg -a sim.gam | vg view -a - | jq -c -r '[ .name, .refpos[0].name, .refpos[0].offset ] | @tsv' | sort >truth.tsv
+    vg annotate -n -x $sim_ref_xg -a sim.gam | tail -n+2 | sort >novelty.tsv
     join truth.tsv novelty.tsv >sim.gam.truth.tsv
     # split the file into the mates
     vg view -X sim.gam | gzip >sim.fq.gz &
@@ -62,7 +68,8 @@ then
 
     # Convert fq to fasta, neede for hybrid aligner
     gunzip -c sim.fq.gz > sim.fq
-    fastq_to_fasta -i sim.fq -o sim.fa
+    #fastq_to_fasta -i sim.fq -o sim.fa
+    paste - - - - < sim.fq | cut -f 1,2 | sed 's/^@/>/' | tr "\t" "\n" > sim.fa
 
 fi
 
@@ -88,21 +95,21 @@ two_step_graph_mapper map_to_path -t $threads -r predicted_path_traversemapped.f
 
 # Convert to linear pos
 two_step_graph_mapper convert_to_reference_positions -s two_step_graph_mapper.sam -d $obg_graph_dir/ -l predicted_path -c $chromosomes -o two_step_graph_mapper_on_reference.sam
-awk '$2!=2048 && $2 != 2064' two_step_graph_mapper_on_reference.sam | grep -v ^@ | pv -l | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort >two_step_graph_mapper.pos
-join two_step_graph_mapper.pos sim.gam.truth.tsv | vg_sim_pos_compare.py $threshold >two_step_graph_mapper.compare
+awk '$2!=2048 && $2 != 2064' two_step_graph_mapper_on_reference.sam | grep -v ^@ | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort >two_step_graph_mapper.pos
+join two_step_graph_mapper.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold >two_step_graph_mapper.compare
 
 two_step_graph_mapper convert_to_reference_positions -s two_step_graph_mapper_traversemapped.sam -d $obg_graph_dir/ -l predicted_path_traversemapped -c $chromosomes -o two_step_graph_mapper_on_reference_traversemapped.sam
-awk '$2!=2048 && $2 != 2064' two_step_graph_mapper_on_reference_traversemapped.sam | grep -v ^@ | pv -l | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort >two_step_graph_mapper_traversemapped.pos
-join two_step_graph_mapper_traversemapped.pos sim.gam.truth.tsv | vg_sim_pos_compare.py $threshold >two_step_graph_mapper_traversemapped.compare
+awk '$2!=2048 && $2 != 2064' two_step_graph_mapper_on_reference_traversemapped.sam | grep -v ^@ | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort >two_step_graph_mapper_traversemapped.pos
+join two_step_graph_mapper_traversemapped.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold >two_step_graph_mapper_traversemapped.compare
 
 # 2) Normal linear mapping
 two_step_graph_mapper map_to_path -t $threads -r $fasta -f sim.fa -o bwa.sam
-awk '$2!=2048 && $2 != 2064' bwa.sam | grep -v ^@ | pv -l | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort >bwa.pos
-join bwa.pos sim.gam.truth.tsv | vg_sim_pos_compare.py $threshold >bwa.compare
+awk '$2!=2048 && $2 != 2064' bwa.sam | grep -v ^@ | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort >bwa.pos
+join bwa.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold >bwa.compare
 
 # 3) vg
 echo "vg pan single mappping"
 time vg map $vg_map_opts -G sim.gam -x $pan_xg -g $pan_gcsa -t $threads --refpos-table | sort  > vg-pan-se.pos
-join vg-pan-se.pos sim.gam.truth.tsv | vg_sim_pos_compare.py $threshold >vg-pan-se.compare
+join vg-pan-se.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold >vg-pan-se.compare
 
-
+../create_roc_plots.sh

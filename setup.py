@@ -16,5 +16,4 @@ setup(name='two_step_graph_mapper',
       entry_points = {
         'console_scripts': ['two_step_graph_mapper=two_step_graph_mapper.command_line_interface:main'],
       }
-
-      )
+)
