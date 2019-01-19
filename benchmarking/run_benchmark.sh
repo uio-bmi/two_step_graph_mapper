@@ -7,7 +7,7 @@ set -e
     #sudo docker run quay.io/vgteam/vg:v1.12.1 vg "$@"
 #}
 
-if [ $# -ne 15 ];
+if [ $# -ne 19 ];
 then
     echo "usage: "$(basename $0) "[output-dir] [fasta-ref] [vg-ref] [vg-pan] [hap0-base] [hap1-base] [sim-base] [sim-ref] [threads] [sim-read-spec] [sim-seed] [bp-threshold] [vg-map-opts]"
     echo "example: "$(basename $0) 'SGRP2/SGD_2010.fasta SGRP2/SGRP2-cerevisiae.pathonly SGRP2/SGRP2-cerevisiae SGRP2/SGRP2-cerevisiae BC187-haps0 BC187-haps1 BC187 BC187.ref 4 "-n 50000 -e 0.01 -i 0.002 -l 150 -p 500 -v 50" 27 150 "-u 16"'
@@ -29,6 +29,10 @@ threshold=${12}
 vg_map_opts=${13}
 obg_graph_dir=${14}
 chromosomes=${15}
+simulation_ob_graph=${16}
+simulation_ob_reference_path=${17}
+graph_vcf_file=${18}
+simulation_vcf_file=${19}
 
 pan_xg=$pan.xg
 pan_gcsa=$pan.gcsa
@@ -59,7 +63,11 @@ then
     rm -f sim1.gam sim2.gam
     vg annotate -p -x $sim_xg -a sim.gam | vg view -a - | jq -c -r '[ .name, .refpos[0].name, .refpos[0].offset ] | @tsv' | sort >truth.tsv
     vg annotate -n -x $sim_ref_xg -a sim.gam | tail -n+2 | sort >novelty.tsv
-    join truth.tsv novelty.tsv >sim.gam.truth.tsv
+    # Find out which reads cover rare variants
+    python3 ../find_rare_variants.py $simulation_ob_graph sim.json $simulation_ob_reference_path $graph_vcf_file $simulation_vcf_file | sort > rare_variants.pos
+
+    join truth.tsv novelty.tsv | join - rare_variants.pos > sim.gam.truth.tsv
+    exit
     # split the file into the mates
     vg view -X sim.gam | gzip >sim.fq.gz &
     vg view -a sim.gam | jq -cr 'select(.name | test("_1$"))' | vg view -JaG - | vg view -X - | sed s/_1$// | gzip >sim_1.fq.gz &
@@ -107,9 +115,14 @@ two_step_graph_mapper map_to_path -t $threads -r $fasta -f sim.fa -o bwa.sam
 awk '$2!=2048 && $2 != 2064' bwa.sam | grep -v ^@ | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort >bwa.pos
 join bwa.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold >bwa.compare
 
-# 3) vg
-echo "vg pan single mappping"
-time vg map $vg_map_opts -G sim.gam -x $pan_xg -g $pan_gcsa -t $threads --refpos-table | sort  > vg-pan-se.pos
-join vg-pan-se.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold >vg-pan-se.compare
+# Seven bridges
+awk '$2!=2048 && $2 != 2064' seven_bridges.sam | grep -v ^@ | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort > seven_bridges.pos
+join seven_bridges.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold >seven_bridges.compare
 
-../create_roc_plots.sh
+
+# 3) vg
+#echo "vg pan single mappping"
+#time vg map $vg_map_opts -G sim.gam -x $pan_xg -g $pan_gcsa -t $threads --refpos-table | sort  > vg-pan-se.pos
+#join vg-pan-se.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold >vg-pan-se.compare
+
+#../create_roc_plots.sh
