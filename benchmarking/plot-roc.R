@@ -15,6 +15,40 @@
 # As such we do not ever achieve 100% sensitivity, as we have effectively scaled the y axis (TPR) by the total
 # sensitivity of each mapper.
 
+mappercolor <- function(name){
+    if (name == "vg"){
+        return("#3355FF")
+    }
+    else if(name == "vg_mitty"){
+        return("#79B4FF")
+    }
+    else if(name == "seven_bridges"){
+        return("#BC35C2")
+    }
+    else if(name == "seven_bridges_mitty"){
+        return("#D797DA")
+    }
+    else if(name == "bwa"){
+        return("#B81B1B")
+    }
+    else if(name == "bwa_untuned"){
+        return("#D68B8B")
+    }
+    else if(name == "two_step_graph_mapper_traversemapped"){
+        return("#0CC1D3")
+    }
+    else if(name == "two_step_graph_mapper_linearmapped"){
+        return("#89D2D9")
+    }
+    else if(name == "two_step_graph_mapper_vg"){
+        return("#D8DE5E")
+    }
+    else{
+        stop("Mapper has no color associated with it: ", name)
+    }
+
+}
+
 list.of.packages <- c("tidyverse", "ggrepel")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
@@ -35,6 +69,17 @@ if (length(commandArgs(TRUE)) > 2) {
 
 # Determine the order of aligners, based on sorting in a dash-separated tag aware manner
 aligner.names <- levels(dat$aligner)
+print(aligner.names)
+
+mappercolors <- aligner.names
+i = 0
+for (name in aligner.names){
+    i = i + 1
+    mappercolors[i] = mappercolor(name)
+}
+
+print(mappercolors)
+
 name.lists <- aligner.names %>% (function(name) map(name,  (function(x) as.list(unlist(strsplit(x, "-"))))))
 # Transpose name fragments into a list of vectors for each position, with NAs when tag lists end early
 max.parts <- max(sapply(name.lists, length))
@@ -65,7 +110,7 @@ range.unlogged = 10^range.log10
 dat.plot <- ggplot(dat.roc, aes( x= FPR, y = TPR, color = aligner, label=mq)) +
     geom_line() + geom_text_repel(data = subset(dat.roc, mq %% 10 == 0), size=3.5, point.padding=unit(0.7, "lines"), segment.alpha=I(1/2.5)) +
     geom_point(aes(size=Positive+Negative)) +
-    scale_color_manual(values=c("#1f78b4","#a6cee3","#e31a1c","#fb9a99","#33a02c","#b2df8a","#6600cc","#e5ccff","#ff8000","#ffe5cc","#5c415d","#9a7c9b", "#458b74", "#76eec6", "#698b22", "#b3ee3a", "#008b8b", "#00eeee"), guide=guide_legend(title=NULL, ncol=2)) +
+    scale_color_manual(values=mappercolors, guide=guide_legend(title=NULL, ncol=2)) +
     scale_size_continuous("number", guide=guide_legend(title=NULL, ncol=4)) +
     scale_x_log10(limits=c(range.unlogged[1],range.unlogged[length(range.unlogged)]), breaks=range.unlogged, oob=squish) +
     geom_vline(xintercept=1/total.reads) + # vertical line at one wrong read
