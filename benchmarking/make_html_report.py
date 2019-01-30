@@ -91,6 +91,21 @@ for name in sys.argv[1].split(","):
 
 print("</div>")
 
+# Make a separate part for all reads
+print("""
+<div style='margin-top: 100px; margin-left: 50px;'>
+<h2>All reads in separate plot</h2>
+<img style='float: left; margin-right: 40px; width: 500px; height: auto;' src='roc-builder.png'>
+<p>
+""")
+
+for name in sys.argv[1].split(","):
+    color = mapper_color(name)
+    print("<span style='margin-right: 30px; font-size: 1.5em;'><font color='" + color + "'>&#9644; " + mapper_name(name) + "</font></span><br>")
+
+print("""
+</div>
+""")
 
 
 print("""</div></body>
