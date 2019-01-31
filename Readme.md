@@ -57,8 +57,8 @@ If the vg roc-plot scripts fail with some xml error, you might need to install l
 
 ### Reproducing the results from the manuscript: Thorough benchmarking on whole genome 1000 genomes graph
 This benchmark takes about 10-15 hours to run. First download all the graph data and graph indices (these are not included in this repo). 
-* [Pruned 1000 genomes graph](http://), containing ~14m variants (only those with allele frequency >= 1%)
-* [Graphs representing the GIAB sample that we simulate reads from](http://)
+* [Pruned 1000 genomes graph](http://158.39.75.109/human_pruned.tar), containing ~14m variants (only those with allele frequency >= 1%)
+* [Graphs representing the GIAB sample that we simulate reads from](http://158.39.75.109/simulation_data.tar)
 
 Download both of these and extract the contents somewhere. The first one is your `graph_dir`, the second one is your `simulation_data_dir`
 

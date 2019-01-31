@@ -38,11 +38,11 @@ def mapper_color(name):
     elif name == "bwa_untuned":
         return "#D68B8B"
     elif name == "two_step_graph_mapper_traversemapped":
-        return "#0CC1D3"
+        return "#00768c"
     elif name == "two_step_graph_mapper_linearmapped":
         return "#89D2D9"
     elif name == "two_step_graph_mapper_vg":
-        return "#D8DE5E"
+        return "#de9000"
     else:
         raise Exception("Mapper name %s not supported. Add a color for this mapper" % name)
 
