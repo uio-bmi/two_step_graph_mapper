@@ -7,7 +7,7 @@ set -e
     #sudo docker run quay.io/vgteam/vg:v1.12.1 vg "$@"
 #}
 
-if [ $# -ne 19 ];
+if [ $# -ne 21 ];
 then
     echo "usage: "$(basename $0) "[output-dir] [fasta-ref] [vg-ref] [vg-pan] [hap0-base] [hap1-base] [sim-base] [sim-ref] [threads] [sim-read-spec] [sim-seed] [bp-threshold] [vg-map-opts]"
     echo "example: "$(basename $0) 'SGRP2/SGD_2010.fasta SGRP2/SGRP2-cerevisiae.pathonly SGRP2/SGRP2-cerevisiae SGRP2/SGRP2-cerevisiae BC187-haps0 BC187-haps1 BC187 BC187.ref 4 "-n 50000 -e 0.01 -i 0.002 -l 150 -p 500 -v 50" 27 150 "-u 16"'
@@ -33,6 +33,8 @@ simulation_ob_graph=${16}
 simulation_ob_reference_path=${17}
 graph_vcf_file=${18}
 simulation_vcf_file=${19}
+simulation_chromosome=${20}
+simulation_chromosome_size=${21}
 
 pan_xg=$pan.xg
 pan_gcsa=$pan.gcsa
@@ -54,6 +56,23 @@ id=$(vg version | cut -f 3 -d- | tail -c 8 | head -c 7)
 # generate the simulated reads if we haven't already
 if [ ! -e sim.gam.truth.tsv ];
 then
+
+    # Simualate reads using Mitty (Seven Bridges way of doing it)
+    echo "$simulation_chromosome $simulation_chromosome_size . +" > region.bed
+    echo "Filter variants"
+    mitty filter-variants $simulation_vcf_file HG002 region.bed mitty_filtered_variants.vcf
+    echo "Gzip"
+    bgzip -f mitty_filtered_variants.vcf
+    tabix -p vcf mitty_filtered_variants.vcf.gz
+    echo "Simulate mitty reads"
+    mitty -v4 generate-reads --threads $threads --unpair $fasta mitty_filtered_variants.vcf.gz HG002 region.bed hiseq-2500-v1-pcr-free.pkl 24 1 reads_mitty.fq reads_mitty.fq.txt
+    gzip -c reads_mitty.fq > reads_mitty.fq.gz
+    # Add sequencing errors to the reads
+    mitty corrupt-reads --threads 40 hiseq-2500-v1-pcr-free.pkl reads_mitty.fq.gz reads_mitty_with_errors.fq reads_mitty.fq.txt reads-corrupt-1q.txt 1
+    # Get correct alignment position for each reads (seems we have to extract this from the fq name). We are only interested in reads that are novel, we add 1 novel node to all these (vg roc script only cares about this column)
+    grep '^@' reads_mitty.fq | awk -F ":" '/148=/{print $0 " 20 " $3 " 148 0 0 148 0 0 0"} !/148=/{print $0, " 20 " $3 " 148 0 0 148 1 1 0"}' | sed -e 's/@//g' | sort > sim.gam.truth.mitty.tsv
+
+    # Simulate using vg
     echo generating simulated reads
     vg sim $read_spec -s $seed -x $haps1_xg -a >sim1.gam &
     vg sim $read_spec -s $(echo "$seed + 1" | bc) -x $haps2_xg -a >sim2.gam &
@@ -64,10 +83,11 @@ then
     vg annotate -p -x $sim_xg -a sim.gam | vg view -a - | jq -c -r '[ .name, .refpos[0].name, .refpos[0].offset ] | @tsv' | sort >truth.tsv
     vg annotate -n -x $sim_ref_xg -a sim.gam | tail -n+2 | sort >novelty.tsv
     # Find out which reads cover rare variants
-    python3 ../find_rare_variants.py $simulation_ob_graph sim.json $simulation_ob_reference_path $graph_vcf_file $simulation_vcf_file | sort > rare_variants.pos
+    #python3 ../find_rare_variants.py $simulation_ob_graph sim.json $simulation_ob_reference_path $graph_vcf_file $simulation_vcf_file | sort > rare_variants.pos
+    #join truth.tsv novelty.tsv | join - rare_variants.pos > sim.gam.truth.tsv
+    # Add zeros instead of rare variant information:
+    join truth.tsv novelty.tsv | awk '{print $0, " 0"}' > sim.gam.truth.tsv
 
-    join truth.tsv novelty.tsv | join - rare_variants.pos > sim.gam.truth.tsv
-    exit
     # split the file into the mates
     vg view -X sim.gam | gzip >sim.fq.gz &
     vg view -a sim.gam | jq -cr 'select(.name | test("_1$"))' | vg view -JaG - | vg view -X - | sed s/_1$// | gzip >sim_1.fq.gz &
@@ -81,31 +101,25 @@ then
 
 fi
 
+
 # Map these simulated reads in three different ways:
 
 # 1) Two step mapper
-#chromosomes="1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,X"
-# Map the two different ways
-rough_graph_mapper map_linear_to_graph --skip-mapq-adjustment True -t 70 -r $fasta -f sim.fa -d $obg_graph_dir -c $chromosomes -o linear_to_graph_mapped.graphalignments
-rough_graph_mapper traversemapper -s True -t 70 -r $fasta -f sim.fa -d $obg_graph_dir -c $chromosomes -o traversemapped.graphalignments
-
-# Filter
-rough_graph_mapper filter --min-mapq 50 -a traversemapped.graphalignments > traversemapped.filtered.graphalignments
-
-two_step_graph_mapper predict_path -t $threads -d $obg_graph_dir -a traversemapped.filtered.graphalignments -c $chromosomes -o predicted_path_traversemapped
+# Run the two different methods for initial rough mapping
+# Method 1:
+rough_graph_mapper map_linear_to_graph -t $threads -r $fasta -f sim.fa -d $obg_graph_dir -c $chromosomes -o linear_to_graph_mapped.graphalignments
 two_step_graph_mapper predict_path -t $threads -d $obg_graph_dir -a linear_to_graph_mapped.graphalignments -c $chromosomes -o predicted_path
-
-# Map to path by using linear to graph mapped path
 two_step_graph_mapper map_to_path -t $threads -r predicted_path.fa -f sim.fa -o two_step_graph_mapper.sam
-
-# Use traversemapped path
-two_step_graph_mapper map_to_path -t $threads -r predicted_path_traversemapped.fa -f sim.fa -o two_step_graph_mapper_traversemapped.sam
-
-# Convert to linear pos
+# convert to linear pos
 two_step_graph_mapper convert_to_reference_positions -s two_step_graph_mapper.sam -d $obg_graph_dir/ -l predicted_path -c $chromosomes -o two_step_graph_mapper_on_reference.sam
 awk '$2!=2048 && $2 != 2064' two_step_graph_mapper_on_reference.sam | grep -v ^@ | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort >two_step_graph_mapper.pos
-join two_step_graph_mapper.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold >two_step_graph_mapper.compare
+join two_step_graph_mapper.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold >two_step_graph_mapper_linearmapped.compare
 
+# Method 2, traversemapper
+rough_graph_mapper traversemapper -t 70 -r $fasta -f sim.fa -d $obg_graph_dir -c $chromosomes -o traversemapped.graphalignments
+rough_graph_mapper filter --min-mapq 50 -a traversemapped.graphalignments > traversemapped.filtered.graphalignments
+two_step_graph_mapper predict_path -t $threads -d $obg_graph_dir -a traversemapped.filtered.graphalignments -c $chromosomes --linear-ref-bonus 1 -o predicted_path_traversemapped
+two_step_graph_mapper map_to_path -t $threads -r predicted_path_traversemapped.fa -f sim.fa -o two_step_graph_mapper_traversemapped.sam
 two_step_graph_mapper convert_to_reference_positions -s two_step_graph_mapper_traversemapped.sam -d $obg_graph_dir/ -l predicted_path_traversemapped -c $chromosomes -o two_step_graph_mapper_on_reference_traversemapped.sam
 awk '$2!=2048 && $2 != 2064' two_step_graph_mapper_on_reference_traversemapped.sam | grep -v ^@ | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort >two_step_graph_mapper_traversemapped.pos
 join two_step_graph_mapper_traversemapped.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold >two_step_graph_mapper_traversemapped.compare
@@ -115,14 +129,47 @@ two_step_graph_mapper map_to_path -t $threads -r $fasta -f sim.fa -o bwa.sam
 awk '$2!=2048 && $2 != 2064' bwa.sam | grep -v ^@ | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort >bwa.pos
 join bwa.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold >bwa.compare
 
+# 3) bwa mem with no tuning
+bwa mem -t threads $fasta sim.fa > bwa-untuned.sam
+awk '$2!=2048 && $2 != 2064' bwa-untuned.sam | grep -v ^@ | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort >bwa-untuned.pos
+join bwa-untuned.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold > bwa_untuned.compare
+
+
+# 4) vg
+echo "vg pan single mappping"
+time vg map $vg_map_opts -G sim.gam -x $pan_xg -g $pan_gcsa -t $threads --refpos-table | sort  > vg.pos
+join vg-pan-se.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold >vg.compare
+
+# Vg using mitty reads
+time vg map -f reads_mitty_with_errors.fq -x $pan_xg -g $pan_gcsa -t $threads --refpos-table | sort  > vg-pan-se-mitty.pos
+# (join on everything before first |, because seems like vg can change the read ID after that)
+join -t "|" vg-pan-se-mitty.pos sim.gam.truth.mitty.tsv | ../vg_sim_pos_compare.py $threshold > vg_mitty.compare
+
 # Seven bridges
-awk '$2!=2048 && $2 != 2064' seven_bridges.sam | grep -v ^@ | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort > seven_bridges.pos
-join seven_bridges.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold >seven_bridges.compare
+# This will only be run if seven bridges have been run seperately and sam files are present
+if [ -e  seven_bridges.sam ];
+then
+    awk '$2!=2048 && $2 != 2064' seven_bridges.sam | grep -v ^@ | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort > seven_bridges.pos
+    join seven_bridges.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold >seven_bridges.compare
+
+    # Seven bridges using mitty
+    awk '$2!=2048 && $2 != 2064' seven_bridges_mitty.sam | grep -v ^@ | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort > seven_bridges_mitty.pos
+    join  -t "|" seven_bridges_mitty.pos sim.gam.truth.mitty.tsv | ../vg_sim_pos_compare.py $threshold > seven_bridges_mitty.compare
+
+else
+    echo " ====================
+    NOT RUNNING SEVEN BRIDGES. MUST BE RUN SEPERATELY
+============ "
+fi
 
 
-# 3) vg
-#echo "vg pan single mappping"
-#time vg map $vg_map_opts -G sim.gam -x $pan_xg -g $pan_gcsa -t $threads --refpos-table | sort  > vg-pan-se.pos
-#join vg-pan-se.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold >vg-pan-se.compare
+# 5) Two-step using vg alignments
+vg map -G sim.gam -x $pan_xg -g $pan_gcsa -t $threads --output-json  > vg.json
+two_step_graph_mapper predict_path -t $threads -d $obg_graph_dir -a vg.json -c $chromosomes --linear-ref-bonus 1 -o predicted_path_vg
+two_step_graph_mapper map_to_path -t $threads -r predicted_path_vg.fa -f sim.fa -o two_step_graph_mapper_vg.sam
+two_step_graph_mapper convert_to_reference_positions -s two_step_graph_mapper_vg.sam -d $obg_graph_dir/ -l predicted_path_vg -c $chromosomes -o two_step_graph_mapper_on_reference_vg.sam
+awk '$2!=2048 && $2 != 2064' two_step_graph_mapper_on_reference_vg.sam | grep -v ^@ | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort >two_step_graph_mapper_vg.pos
+join two_step_graph_mapper_vg.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold >two_step_graph_mapper_vg.compare
 
 #../create_roc_plots.sh
+

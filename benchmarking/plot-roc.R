@@ -35,13 +35,13 @@ mappercolor <- function(name){
         return("#D68B8B")
     }
     else if(name == "two_step_graph_mapper_traversemapped"){
-        return("#0CC1D3")
+        return("#00768c")
     }
     else if(name == "two_step_graph_mapper_linearmapped"){
         return("#89D2D9")
     }
     else if(name == "two_step_graph_mapper_vg"){
-        return("#D8DE5E")
+        return("#de9000")
     }
     else{
         stop("Mapper has no color associated with it: ", name)
@@ -114,7 +114,7 @@ dat.plot <- ggplot(dat.roc, aes( x= FPR, y = TPR, color = aligner, label=mq)) +
     scale_size_continuous("number", guide=guide_legend(title=NULL, ncol=4)) +
     scale_x_log10(limits=c(range.unlogged[1],range.unlogged[length(range.unlogged)]), breaks=range.unlogged, oob=squish) +
     geom_vline(xintercept=1/total.reads) + # vertical line at one wrong read
-    theme_bw()
+    theme(legend.position = "none")
 
 filename <- commandArgs(TRUE)[2]
-ggsave(filename, height=4, width=7)
+ggsave(filename, height=4, width=4)
