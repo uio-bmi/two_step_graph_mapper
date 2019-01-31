@@ -24,7 +24,7 @@ class PathPredicter:
 
     def _read_alignments(self):
         if self.alignment_file_name.endswith(".json"):
-            self.alignments = vg_json_file_to_interval_collection(self.alignment_file_name, self.graph).intervals
+            self.alignments = vg_json_file_to_interval_collection(self.alignment_file_name).intervals
         elif self.alignment_file_name.endswith(".graphalignments"):
             self.alignments = (Interval.from_file_line(line.split("\t")[1]) for line in open(self.alignment_file_name))
         else:
@@ -36,11 +36,13 @@ class PathPredicter:
         graph_max_node = self.graph.blocks.max_node_id()
 
         for alignment in self.alignments:
+            if abs(alignment.region_paths[0]) < graph_min_node or abs(alignment.region_paths[0]) > graph_max_node:
+                continue
+
+            alignment.graph = self.graph
             if alignment.region_paths[0] < 0:
                 alignment = alignment.get_reverse()
 
-            if alignment.region_paths[0] < graph_min_node or alignment.region_paths[0] > graph_max_node:
-                continue
 
             prev_node = alignment.region_paths[0]
             for node in alignment.region_paths[1:]:
