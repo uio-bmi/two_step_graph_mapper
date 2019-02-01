@@ -55,7 +55,7 @@ Simply run the run_benchmarking.sh script like this, standing in the mhc_benchma
 ```bash
 cd benchmarking/mhc_benchmark
 ../run_benchmark.sh None ../mhc_graph_data/linear_ref.fa None ../mhc_graph_data/wg ../mhc_graph_data/giab_chr6_haplotype0 ../mhc_graph_data/giab_chr6_haplotype1 \
-       ../mhc_graph_data/giab ../mhc_graph_data/giab_reference 75 "--forward-only -n 250000 -e 0.01 -i 0.002 -l 150" 2358792 150 "" ../mhc_graph_data/ 6  ../mhc_graph_data/giab_chr6.nobg ../mhc_graph_data/giab_reference_path_6.intervalcollection.indexed ../mhc_graph_data/1000genomes_variants.vcf ../mhc_graph_data/giab_variants.vcf.gz "6 1 4970557"
+       ../mhc_graph_data/giab ../mhc_graph_data/giab_reference 75 "--forward-only -n 250000 -e 0.01 -i 0.002 -l 150" 2358792 150 "" ../mhc_graph_data/ 6  ../mhc_graph_data/giab_chr6.nobg ../mhc_graph_data/giab_reference_path_6.intervalcollection.indexed ../mhc_graph_data/1000genomes_variants.vcf ../mhc_graph_data/giab_variants.vcf.gz 6 4970557
 ```
 Three plots will be produces in the folder you are running from: roc-builder.png, roc-novel-builder.png and roc-known-builder.png.
 If the vg roc-plot scripts fail with some xml error, you might need to install lib-xml (on ubuntu: `sudo apt-get install libxml2-dev`)
@@ -96,6 +96,9 @@ Below are the exact commands used to generate the figures in the paper:
 ../create_roc_plots.sh vg,two_step_graph_mapper_vg,bwa
 
 # Figure 4
+../create_roc_plots.sh vg,bwa,two_step_graph_mapper_vg
+
+# Figure 5
 ../create_roc_plots.sh vg,bwa,seven_bridges,two_step_graph_mapper_traversemapped,two_step_graph_mapper_linearmapped
 ```
 
