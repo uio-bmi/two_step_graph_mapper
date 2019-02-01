@@ -43,9 +43,16 @@ mappercolor <- function(name){
     else if(name == "two_step_graph_mapper_vg"){
         return("#de9000")
     }
+    else if(name == "sb_pe"){
+        return("#000000")
+    }
+    else if(name == "bwa_pe"){
+        return("#555555")
+    }
     else{
         stop("Mapper has no color associated with it: ", name)
     }
+
 
 }
 
