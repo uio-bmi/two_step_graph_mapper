@@ -3,9 +3,9 @@
 ## Install
 BWA-MEM and Minimap2 are requirements. Make sure they are installed first.
 
-For running the experiments, [Mitty](https://github.com/sbg/Mitty) (Seven Bridges' tool for simulating reads) is needed.
+For running the experiments described further down on this page, [Mitty](https://github.com/sbg/Mitty) (Seven Bridges' tool for simulating reads) is needed.
 
-Assuming you have BWA-MEM and Minimap 2 installed, you can install Two-step Graph Mapper by cloning:
+Assuming you have BWA-MEM and Minimap 2 installed, you can install Two-step Graph Mapper by cloning and using pip:
 ```bash
 git clone 
 cd two_step_graph_mapper 
@@ -13,14 +13,19 @@ pip3 install .
 ```
 
 ## How to use 
-First, you need some graphalignments, e.g. from running vg or rough_graph_mapper:
+First, you need some graphalignments, e.g. from running vg or rough_graph_mapper. 
+If using the rough_graph_mapper, you will need to specify the chromosomes that you are running on after `--chromosomes`.
+The `graphs_dir/` is a directory containing graphs. You can test with the directory `benchmarking/mhc_graph_data/` in this repository, which contains
+one test-graph for chromosome 6. You will also find a link to a full human graph under the Benchmarking section further down.
+
 ```bash
 rough_graph_mapper map_linear_to_graph -r linear_reference.fa -f reads.fa -d graphs_dir/ --chromosomes 1,2,3 > some.graphalignments
 ```
 
-The first step is to predict a path through the graph:
+
+After having some rough alignments, the first step of the two-step approach is to predict a path through the graph:
 ```bash
-two_step_graph_mapper predict_path -d graphdir/ -a some.graphalignments -c 1,2,3 -o my_predicted_path
+two_step_graph_mapper predict_path -d graphs_dir/ -a some.graphalignments -c 1,2,3 -o my_predicted_path
 ```
 NB: The above command also runs bwa index, which will take an hour or two extra. You can skip that step by adding `-s`.
 
@@ -42,7 +47,7 @@ using the sim.fq and reads_mitty.fq files produced by first running this benchma
 
 ### Quick and rough benchmarking
 This test acts as an integration test, to see that everything is working and to get a quick overview of the
-performance. The test takes about 30 minutes to run on a laptop, and will produce plots similar to those below:
+performance. The test takes about 30 minutes to run on a laptop.
 
 All necessary graphs for running this test are included in this repository. 
 The only thing you need is [vg](https://github.com/vgteam/vg) installed on your system.
@@ -57,20 +62,20 @@ If the vg roc-plot scripts fail with some xml error, you might need to install l
 
 ### Reproducing the results from the manuscript: Thorough benchmarking on whole genome 1000 genomes graph
 This benchmark takes about 10-15 hours to run. First download all the graph data and graph indices (these are not included in this repo). 
-* [Pruned 1000 genomes graph](http://158.39.75.109/human_pruned.tar), containing ~14m variants (only those with allele frequency >= 1%)
+* [Pruned 1000 genomes graph](http://158.39.75.109/human_pruned_1pc.tar), containing ~14m variants (only those with allele frequency >= 1%)
 * [Graphs representing the GIAB sample that we simulate reads from](http://158.39.75.109/simulation_data.tar)
 
 Download both of these and extract the contents somewhere. The first one is your `graph_dir`, the second one is your `simulation_data_dir`
 
 Create a folder inside the benchmarking folder of this repository, e.g. `mkdir whole_genome_benchmarking`
 
-Then run this command to run the benchmark (insert the path to your graph_dir):
+Then run this command to run the benchmark (insert the paths to the two directories):
 ```bash
 graph_dir=your_graph_dir/
 simulation_data_dir=your_simulation_data_dir/
 threads=32  # Number of threads you want to use
 
-# Run the benchmarks (all methods will be run)
+# Run the benchmarks
 ../run_benchmark.sh None $simulation_data_dir/hg19_chr1-Y.fa None $graph_dir/wg $simulation_data_dir/haplotype0_only_chr20_no_paths $simulation_data_dir/haplotype1_only_chr20_no_paths \
     $simulation_data_dir/giab $simulation_data_dir/giab_only_reference $threads "--forward-only -n 5000000 -e 0.01 -i 0.002 -l 150" 2358792 150 "" \
     $graph_dir 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,X None None None None 20 63025520 

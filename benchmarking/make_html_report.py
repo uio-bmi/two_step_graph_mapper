@@ -21,6 +21,8 @@ def mapper_name(name):
         return "Two-step approach using linear-mapper"
     elif name == "two_step_graph_mapper_vg":
         return "Two-step approach using vg alignments"
+    elif name == "sb_pe" or name == "bwa_pe":
+        return name
     else:
         raise Exception("Mapper name %s not supported. Add a color for this mapper" % name)
 
@@ -43,6 +45,10 @@ def mapper_color(name):
         return "#89D2D9"
     elif name == "two_step_graph_mapper_vg":
         return "#de9000"
+    elif name == "sb_pe":
+        return "black"
+    elif name == "bwa_pe":
+        return "#555555"
     else:
         raise Exception("Mapper name %s not supported. Add a color for this mapper" % name)
 
