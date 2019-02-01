@@ -77,15 +77,15 @@ print("<div align='center' style='width: 1800px; font-size: 2em; font-weight: bo
 directory = "./"
 for title, image_postfix in images:
     image_url = "roc" + image_postfix + "-builder.png"
-    width = 590
+    width = 600
     if "novel" in image_postfix:
-        width = 550
+        width = 600
 
     print("""<div class='image_box'>
-    <div align='center'><p style='font-size: 1.5em'><b>%s</b></p></div>
-    <div style='background-size: cover; width: %dpx; height: 600px; background-image: url(%s)'></div>
+    <div align='center'><p style='font-size: 1.7em'><b>%s</b></p></div>
+    <div style='background-size: cover; width: %dpx; height: %dpx; background-image: url(%s)'></div>
     </div>
-    """ % (title, width, image_url)
+    """ % (title, width, width, image_url)
     )
 
 
@@ -101,7 +101,7 @@ print("</div>")
 print("""
 <div style='margin-top: 100px; margin-left: 50px;'>
 <h2>All reads in separate plot</h2>
-<img style='float: left; margin-right: 40px; width: 500px; height: auto;' src='roc-builder.png'>
+<img style='float: left; margin-right: 40px; width: 600px; height: auto;' src='roc-builder.png'>
 <p>
 """)
 
