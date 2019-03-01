@@ -34,7 +34,7 @@ graph_vcf_file=${18}
 simulation_vcf_file=${19}
 simulation_chromosome=${20}
 simulation_chromosome_size=${21}
-hisat2_index={$22}
+hisat2_index=${22}
 
 pan_xg=$pan.xg
 pan_gcsa=$pan.gcsa
@@ -119,6 +119,11 @@ two_step_graph_mapper map_to_path -t $threads -r predicted_path.fa -f sim.fa -o 
 two_step_graph_mapper convert_to_reference_positions -s two_step_graph_mapper.sam -d $obg_graph_dir/ -l predicted_path -c $chromosomes -o two_step_graph_mapper_on_reference.sam
 awk '$2!=2048 && $2 != 2064' two_step_graph_mapper_on_reference.sam | grep -v ^@ | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort >two_step_graph_mapper.pos
 join two_step_graph_mapper.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold >two_step_graph_mapper_linearmapped.compare
+
+
+# Method 2: Graph minimap
+rough_graph_mapper remove_reads_from_fasta -f sim.fa -a linear_to_graph_mapped.graphalignments > sim_without_linear_to_graph_mapped.fa
+
 
 # Method 2, traversemapper
 #rough_graph_mapper traversemapper -t 70 -r $fasta -f sim.fa -d $obg_graph_dir -c $chromosomes -o traversemapped.graphalignments
