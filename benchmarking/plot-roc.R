@@ -15,6 +15,7 @@
 # As such we do not ever achieve 100% sensitivity, as we have effectively scaled the y axis (TPR) by the total
 # sensitivity of each mapper.
 
+
 mappercolor <- function(name){
     if (name == "vg"){
         return("#3355FF")
@@ -37,6 +38,9 @@ mappercolor <- function(name){
     else if(name == "two_step_graph_mapper_traversemapped"){
         return("#00768c")
     }
+    else if(name == "two_step_graph_mapper_graph_minimap"){
+        return("#00598C")
+    }
     else if(name == "two_step_graph_mapper_linearmapped"){
         return("#89D2D9")
     }
@@ -49,6 +53,12 @@ mappercolor <- function(name){
     else if(name == "bwa_pe"){
         return("#555555")
     }
+    else if(name == "hisat"){
+        return("#DE5E87")
+    }
+    else if(name == "hisat_snp"){
+        return("#66404C")
+    }
     else{
         stop("Mapper has no color associated with it: ", name)
     }
@@ -56,12 +66,13 @@ mappercolor <- function(name){
 
 }
 
-list.of.packages <- c("tidyverse", "ggrepel")
+list.of.packages <- c("tidyverse", "ggrepel", "magrittr")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
-if(length(new.packages)) install.packages(new.packages)
+if(length(new.packages)) install.packages(new.packages, dependencies=T)
 require("tidyverse")
 require("ggrepel")
 require("scales") # For squish
+require("magrittr") # For squish
 
 # Read in the combined toil-vg stats.tsv, listing:
 # correct, mapq, aligner (really graph name), read name
