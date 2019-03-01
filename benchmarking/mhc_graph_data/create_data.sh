@@ -88,4 +88,10 @@ vg index -x giab_reference.xg giab_reference.vg
 
 
 
+# Hisat:
+python ../hisat2_extract_snps_haplotypes_VCF.py linear_ref.fa 1000genomes_variants.vcf.gz hisat2_snps
+hisat2-build linear_ref.fa hisat2_index --snp hisat2_snps.snp
+
+
+
 
