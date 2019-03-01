@@ -12,7 +12,6 @@ for mapper in $(echo $mappers| tr "," "\n")
     echo $mapper
     cat $mapper.compare | awk -v name="${mapper}" 'BEGIN { OFS="\t"} { print $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, name}' >> $timestamp/results.tsv
 done
-../plot-roc.R $timestamp/results.tsv
 
 ( cat $timestamp/results.tsv | head -1; cat $timestamp/results.tsv | tail -n+2 | awk '{ if ($8 == 0) print }' ) | gzip >$timestamp/results-known.tsv
 ( cat $timestamp/results.tsv | head -1; cat $timestamp/results.tsv | tail -n+2 | awk '{ if ($8 > 0) print }' ) | gzip >$timestamp/results-novel.tsv
