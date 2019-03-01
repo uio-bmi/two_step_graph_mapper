@@ -17,12 +17,18 @@ def mapper_name(name):
         return "BWA-MEM untuned"
     elif name == "two_step_graph_mapper_traversemapped":
         return "Two-step approach using traversemapper"
+    elif name == "two_step_graph_mapper_graph_minimap":
+        return "Two-step approach using graph minimap"
     elif name == "two_step_graph_mapper_linearmapped":
         return "Two-step approach using linear-mapper"
     elif name == "two_step_graph_mapper_vg":
         return "Two-step approach using vg alignments"
     elif name == "sb_pe" or name == "bwa_pe":
         return name
+    elif name == "hisat":
+        return "hisat2"
+    elif name == "hisat_snp":
+        return "hisat2 (only SNPs)"
     else:
         raise Exception("Mapper name %s not supported. Add a color for this mapper" % name)
 
@@ -41,6 +47,8 @@ def mapper_color(name):
         return "#D68B8B"
     elif name == "two_step_graph_mapper_traversemapped":
         return "#00768c"
+    elif name == "two_step_graph_mapper_graph_minimap":
+        return "#00598C"
     elif name == "two_step_graph_mapper_linearmapped":
         return "#89D2D9"
     elif name == "two_step_graph_mapper_vg":
@@ -49,6 +57,10 @@ def mapper_color(name):
         return "black"
     elif name == "bwa_pe":
         return "#555555"
+    elif name == "hisat":
+        return "#DE5E87"
+    elif name == "hisat_snp":
+        return "#66404C"
     else:
         raise Exception("Mapper name %s not supported. Add a color for this mapper" % name)
 
