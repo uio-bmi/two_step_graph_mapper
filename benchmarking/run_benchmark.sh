@@ -7,10 +7,9 @@ set -e
     #sudo docker run quay.io/vgteam/vg:v1.12.1 vg "$@"
 #}
 
-if [ $# -ne 21 ];
+if [ $# -ne 22 ];
 then
-    echo "usage: "$(basename $0) "[output-dir] [fasta-ref] [vg-ref] [vg-pan] [hap0-base] [hap1-base] [sim-base] [sim-ref] [threads] [sim-read-spec] [sim-seed] [bp-threshold] [vg-map-opts]"
-    echo "example: "$(basename $0) 'SGRP2/SGD_2010.fasta SGRP2/SGRP2-cerevisiae.pathonly SGRP2/SGRP2-cerevisiae SGRP2/SGRP2-cerevisiae BC187-haps0 BC187-haps1 BC187 BC187.ref 4 "-n 50000 -e 0.01 -i 0.002 -l 150 -p 500 -v 50" 27 150 "-u 16"'
+    echo "Invalid input parameters. Check Readme for examples on how to run."
     exit
 fi
 
@@ -35,6 +34,7 @@ graph_vcf_file=${18}
 simulation_vcf_file=${19}
 simulation_chromosome=${20}
 simulation_chromosome_size=${21}
+hisat2_index={$22}
 
 pan_xg=$pan.xg
 pan_gcsa=$pan.gcsa
@@ -103,6 +103,11 @@ fi
 
 
 # Map these simulated reads in three different ways:
+
+# Hisat 2
+hisat2 -p 30 -q sim.fq --no-spliced-alignment -x $hisat2_index > hisat.sam
+awk '$2 < 256' hisat.sam | grep -v ^@ | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort >hisat.pos
+join hisat.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold  > hisat.compare
 
 # 1) Two step mapper
 # Run the two different methods for initial rough mapping
