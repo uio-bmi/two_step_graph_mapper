@@ -25,6 +25,9 @@ class PathPredicter:
     def _read_alignments(self):
         if self.alignment_file_name.endswith(".json"):
             self.alignments = vg_json_file_to_interval_collection(self.alignment_file_name).intervals
+        elif self.alignment_file_name.endswith(".graphnodes"):
+            self.alignments = (Interval(0, 1, [int(n) for n in line.split()[1].split(",")])
+                               for line in open(self.alignment_file_name))
         elif self.alignment_file_name.endswith(".graphalignments"):
             self.alignments = (Interval.from_file_line(line.split("\t")[1]) for line in open(self.alignment_file_name))
         else:
