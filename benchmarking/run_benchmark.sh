@@ -58,7 +58,7 @@ if [ ! -e sim.gam.truth.tsv ];
 then
 
     # Simualate reads using Mitty (Seven Bridges way of doing it)
-    echo "$simulation_chromosome $simulation_chromosome_size . +" > region.bed
+    echo "$simulation_chromosome 0 $simulation_chromosome_size . +" > region.bed
     echo "Filter variants"
     mitty filter-variants $simulation_vcf_file HG002 region.bed mitty_filtered_variants.vcf
     echo "Gzip"
