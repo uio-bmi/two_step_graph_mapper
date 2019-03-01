@@ -8,7 +8,7 @@ For running the experiments described further down on this page, also [vg](http:
 
 Assuming you have BWA-MEM and Minimap 2 installed, you can install Two-step Graph Mapper by cloning and using pip:
 ```bash
-git clone 
+git clone https://github.com/uio-bmi/two_step_graph_mapper.git 
 cd two_step_graph_mapper 
 pip3 install .
 ```

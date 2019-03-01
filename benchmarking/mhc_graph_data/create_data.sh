@@ -1,5 +1,6 @@
 # Make reference graph
-vg construct -C -R 6 -r linear_ref.fa -v 1000genomes_variants.vcf.gz -t 20 -m 32 > 6.vg
+vg construct -C -R 6 -r linear_ref.fa -v 1000genomes_variants.vcf.gz -t 20 -m 32 > 6.unsorted.vg
+vg mod -c 6.unsorted.vg > 6.vg
 vg index -x wg.xg 6.vg
 vg prune -r 6.vg > 6.pruned.vg
 vg index -g wg.gcsa 6.pruned.vg
