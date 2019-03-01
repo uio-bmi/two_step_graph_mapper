@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # Copied from vg repo
 import logging
 ### positional comparison script useful for tagging alignments with their true position
@@ -15,7 +15,7 @@ for line in sys.stdin:
     aln_name = fields[0]
     if len(fields) != 14:
         #logging.warning("Could not parse line %s with fields %s" % (line, fields))
-        print aln_name, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        print(aln_name, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
         continue
     aln_chr = fields[1]
     aln_pos = int(fields[2])
@@ -33,4 +33,4 @@ for line in sys.stdin:
     novel_bp = int(fields[12])
     is_on_rare_variant = int(fields[13])
     aln_correct = 1 if aln_chr == true_chr and abs(true_pos - aln_pos) < threshold else 0
-    print aln_name, aln_correct, aln_mapq, aln_score, length, unaligned, known_nodes, known_bp, novel_nodes, novel_bp, is_on_rare_variant, true_pos, aln_pos, abs(true_pos - aln_pos)
+    print(aln_name, aln_correct, aln_mapq, aln_score, length, unaligned, known_nodes, known_bp, novel_nodes, novel_bp, is_on_rare_variant, true_pos, aln_pos, abs(true_pos - aln_pos))
