@@ -16,4 +16,7 @@ benchmarking/mhc_graph_data
 *.gz
 *.tsv
 *.vcf
+report.html
+*.compare
+
 
