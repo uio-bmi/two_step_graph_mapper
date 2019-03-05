@@ -39,7 +39,7 @@ mappercolor <- function(name){
         return("#00768c")
     }
     else if(name == "two_step_graph_mapper_graph_minimap"){
-        return("#00598C")
+        return("#00768c")
     }
     else if(name == "two_step_graph_mapper_linearmapped"){
         return("#89D2D9")

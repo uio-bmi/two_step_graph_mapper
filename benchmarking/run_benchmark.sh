@@ -114,21 +114,27 @@ fi
 
 # Map these simulated reads in three different ways:
 
-# Method 2: Graph minimap
-rough_graph_mapper remove_reads_from_fasta -f sim.fa -a linear_to_graph_mapped.graphalignments > sim_without_linear_to_graph_mapped.fa
-graph_minimap sim_without_linear_to_graph_mapped.fa $graph_minimap_index $ob_numpy_graphs $threads graph_minimap.graphalignments.tmp
-cat linear_to_graph_mapped.graphalignments graph_minimap.graphalignments.tmp > graph_minimap.graphalignments
 
 # 1) Two step mapper
 # Run the two different methods for initial rough mapping
 # Method 1:
-rough_graph_mapper map_linear_to_graph -t $threads -r $fasta -f sim.fa -d $obg_graph_dir -c $chromosomes -o linear_to_graph_mapped.graphalignments
+rough_graph_mapper map_linear_to_graph --min-mapq 0 -t $threads -r $fasta -f sim.fa -d $obg_graph_dir -c $chromosomes -o linear_to_graph_mapped.graphalignments
 two_step_graph_mapper predict_path -t $threads -d $obg_graph_dir -a linear_to_graph_mapped.graphalignments -c $chromosomes -o predicted_path
 two_step_graph_mapper map_to_path -t $threads -r predicted_path.fa -f sim.fa -o two_step_graph_mapper.sam
-# convert to linear pos
 two_step_graph_mapper convert_to_reference_positions -s two_step_graph_mapper.sam -d $obg_graph_dir/ -l predicted_path -c $chromosomes -o two_step_graph_mapper_on_reference.sam
 awk '$2!=2048 && $2 != 2064' two_step_graph_mapper_on_reference.sam | grep -v ^@ | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort >two_step_graph_mapper.pos
 join two_step_graph_mapper.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold >two_step_graph_mapper_linearmapped.compare
+
+# Method 2: Graph minimap
+rough_graph_mapper map_linear_to_graph --min-mapq 35 -t $threads -r $fasta -f sim.fa -d $obg_graph_dir -c $chromosomes -o linear_to_graph_mapped_min_mapq35.graphalignments
+rough_graph_mapper remove_reads_from_fasta -f sim.fa -a linear_to_graph_mapped_min_mapq35.graphalignments > sim_under_mapq35.fa
+graph_minimap sim_under_mapq35.fa $graph_minimap_index $ob_numpy_graphs $threads graph_minimap.graphalignments.tmp
+cat linear_to_graph_mapped_min_mapq35.graphalignments graph_minimap.graphalignments.tmp > graph_minimap.graphalignments
+two_step_graph_mapper predict_path -t $threads -d $obg_graph_dir -a graph_minimap.graphalignments -c $chromosomes --linear-ref-bonus 1 -o predicted_path_graph_minimap
+two_step_graph_mapper map_to_path -t $threads -r predicted_path_graph_minimap.fa -f sim.fa -o two_step_graph_mapper_graph_minimap.sam
+two_step_graph_mapper convert_to_reference_positions -s two_step_graph_mapper_graph_minimap.sam -d $obg_graph_dir/ -l predicted_path_graph_minimap -c $chromosomes -o two_step_graph_mapper_on_reference_graph_minimap.sam
+awk '$2!=2048 && $2 != 2064' two_step_graph_mapper_on_reference_graph_minimap.sam | grep -v ^@ | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort >two_step_graph_mapper_graph_minimap.pos
+join two_step_graph_mapper_graph_minimap.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold >two_step_graph_mapper_graph_minimap.compare
 
 
 # Hisat 2
@@ -141,14 +147,6 @@ hisat2 -p 30 -q reads_mitty_with_errors.fq --no-spliced-alignment -x $hisat2_ind
 awk '$2 < 256' hisat_mitty.sam | grep -v ^@ | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort >hisat_mitty.pos
 join hisat_mitty.pos sim.gam.truth.mitty.tsv | ../vg_sim_pos_compare.py $threshold  > hisat_mitty.compare
 
-# Method 2, traversemapper
-#rough_graph_mapper traversemapper -t 70 -r $fasta -f sim.fa -d $obg_graph_dir -c $chromosomes -o traversemapped.graphalignments
-#rough_graph_mapper filter --min-mapq 50 -a traversemapped.graphalignments > traversemapped.filtered.graphalignments
-#two_step_graph_mapper predict_path -t $threads -d $obg_graph_dir -a traversemapped.filtered.graphalignments -c $chromosomes --linear-ref-bonus 1 -o predicted_path_traversemapped
-#two_step_graph_mapper map_to_path -t $threads -r predicted_path_traversemapped.fa -f sim.fa -o two_step_graph_mapper_traversemapped.sam
-#two_step_graph_mapper convert_to_reference_positions -s two_step_graph_mapper_traversemapped.sam -d $obg_graph_dir/ -l predicted_path_traversemapped -c $chromosomes -o two_step_graph_mapper_on_reference_traversemapped.sam
-#awk '$2!=2048 && $2 != 2064' two_step_graph_mapper_on_reference_traversemapped.sam | grep -v ^@ | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort >two_step_graph_mapper_traversemapped.pos
-#join two_step_graph_mapper_traversemapped.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold >two_step_graph_mapper_traversemapped.compare
 
 # 2) Normal linear mapping
 two_step_graph_mapper map_to_path -t $threads -r $fasta -f sim.fa -o bwa.sam

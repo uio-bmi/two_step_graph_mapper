@@ -48,7 +48,7 @@ def mapper_color(name):
     elif name == "two_step_graph_mapper_traversemapped":
         return "#00768c"
     elif name == "two_step_graph_mapper_graph_minimap":
-        return "#00598C"
+        return "#00768c"
     elif name == "two_step_graph_mapper_linearmapped":
         return "#89D2D9"
     elif name == "two_step_graph_mapper_vg":
