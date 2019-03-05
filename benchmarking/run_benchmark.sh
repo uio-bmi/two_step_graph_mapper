@@ -72,7 +72,7 @@ then
     # Add sequencing errors to the reads
     mitty corrupt-reads --threads 40 hiseq-2500-v1-pcr-free.pkl reads_mitty.fq.gz reads_mitty_with_errors.fq reads_mitty.fq.txt reads-corrupt-1q.txt 1
     # Get correct alignment position for each reads (seems we have to extract this from the fq name). We are only interested in reads that are novel, we add 1 novel node to all these (vg roc script only cares about this column)
-    grep '^@' reads_mitty_with_errors.fq | awk -F ":" '/148=/{print $0 " 20 " $3 " 148 0 0 148 0 0 0"} !/148=/{print $0, " 20 " $3 " 148 0 0 148 1 1 0"}' | sed -e 's/@//g' | sort > sim.gam.truth.mitty.tsv
+    grep '^@' reads_mitty_with_errors.fq | awk -F ":" '/148=/{print $0 " $simulation_chromosome " $3 " 148 0 0 148 0 0 0"} !/148=/{print $0, " $simulation_chromosome " $3 " 148 0 0 148 1 1 0"}' | sed -e 's/@//g' | sort > sim.gam.truth.mitty.tsv
 
     # Simulate using vg
     echo generating simulated reads
