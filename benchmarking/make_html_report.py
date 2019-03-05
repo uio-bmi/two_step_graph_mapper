@@ -26,9 +26,9 @@ def mapper_name(name):
     elif name == "sb_pe" or name == "bwa_pe":
         return name
     elif name == "hisat":
-        return "hisat2"
-    elif name == "hisat_snp":
-        return "hisat2 (only SNPs)"
+        return "Hisat 2"
+    elif name == "hisat_mitty":
+        return "Hisat 2 with reads simulated by Mitty"
     else:
         raise Exception("Mapper name %s not supported. Add a color for this mapper" % name)
 
@@ -58,9 +58,9 @@ def mapper_color(name):
     elif name == "bwa_pe":
         return "#555555"
     elif name == "hisat":
-        return "#DE5E87"
-    elif name == "hisat_snp":
-        return "#66404C"
+        return "#148046"
+    elif name == "hisat_mitty":
+        return "#5BC38B"
     else:
         raise Exception("Mapper name %s not supported. Add a color for this mapper" % name)
 

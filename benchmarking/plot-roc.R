@@ -54,10 +54,10 @@ mappercolor <- function(name){
         return("#555555")
     }
     else if(name == "hisat"){
-        return("#DE5E87")
+        return("#148046")
     }
-    else if(name == "hisat_snp"){
-        return("#66404C")
+    else if(name == "hisat_mitty"){
+        return("#5BC38B")
     }
     else{
         stop("Mapper has no color associated with it: ", name)

@@ -7,7 +7,7 @@ set -e
     #sudo docker run quay.io/vgteam/vg:v1.12.1 vg "$@"
 #}
 
-if [ $# -ne 22 ];
+if [ $# -ne 24 ];
 then
     echo "Invalid input parameters. Check Readme for examples on how to run."
     exit
@@ -35,6 +35,8 @@ simulation_vcf_file=${19}
 simulation_chromosome=${20}
 simulation_chromosome_size=${21}
 hisat2_index=${22}
+graph_minimap_index=${23}
+ob_numpy_graphs=${24}
 
 pan_xg=$pan.xg
 pan_gcsa=$pan.gcsa
@@ -70,7 +72,7 @@ then
     # Add sequencing errors to the reads
     mitty corrupt-reads --threads 40 hiseq-2500-v1-pcr-free.pkl reads_mitty.fq.gz reads_mitty_with_errors.fq reads_mitty.fq.txt reads-corrupt-1q.txt 1
     # Get correct alignment position for each reads (seems we have to extract this from the fq name). We are only interested in reads that are novel, we add 1 novel node to all these (vg roc script only cares about this column)
-    grep '^@' reads_mitty.fq | awk -F ":" '/148=/{print $0 " 20 " $3 " 148 0 0 148 0 0 0"} !/148=/{print $0, " 20 " $3 " 148 0 0 148 1 1 0"}' | sed -e 's/@//g' | sort > sim.gam.truth.mitty.tsv
+    grep '^@' reads_mitty_with_errors.fq | awk -F ":" '/148=/{print $0 " 20 " $3 " 148 0 0 148 0 0 0"} !/148=/{print $0, " 20 " $3 " 148 0 0 148 1 1 0"}' | sed -e 's/@//g' | sort > sim.gam.truth.mitty.tsv
 
     # Simulate using vg
     echo generating simulated reads
@@ -104,10 +106,10 @@ fi
 
 # Map these simulated reads in three different ways:
 
-# Hisat 2
-hisat2 -p 30 -q sim.fq --no-spliced-alignment -x $hisat2_index > hisat.sam
-awk '$2 < 256' hisat.sam | grep -v ^@ | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort >hisat.pos
-join hisat.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold  > hisat.compare
+# Method 2: Graph minimap
+rough_graph_mapper remove_reads_from_fasta -f sim.fa -a linear_to_graph_mapped.graphalignments > sim_without_linear_to_graph_mapped.fa
+graph_minimap sim_without_linear_to_graph_mapped.fa $graph_minimap_index $ob_numpy_graphs $threads graph_minimap.graphalignments.tmp
+cat linear_to_graph_mapped.graphalignments graph_minimap.graphalignments.tmp > graph_minimap.graphalignments
 
 # 1) Two step mapper
 # Run the two different methods for initial rough mapping
@@ -121,9 +123,15 @@ awk '$2!=2048 && $2 != 2064' two_step_graph_mapper_on_reference.sam | grep -v ^@
 join two_step_graph_mapper.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold >two_step_graph_mapper_linearmapped.compare
 
 
-# Method 2: Graph minimap
-rough_graph_mapper remove_reads_from_fasta -f sim.fa -a linear_to_graph_mapped.graphalignments > sim_without_linear_to_graph_mapped.fa
+# Hisat 2
+hisat2 -p 30 -q sim.fq --no-spliced-alignment -x $hisat2_index > hisat.sam
+awk '$2 < 256' hisat.sam | grep -v ^@ | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort >hisat.pos
+join hisat.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold  > hisat.compare
 
+# Hisat 2 using Mitty reads
+hisat2 -p 30 -q reads_mitty_with_errors.fq --no-spliced-alignment -x $hisat2_index > hisat_mitty.sam
+awk '$2 < 256' hisat_mitty.sam | grep -v ^@ | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort >hisat_mitty.pos
+join hisat_mitty.pos sim.gam.truth.mitty.tsv | ../vg_sim_pos_compare.py $threshold  > hisat_mitty.compare
 
 # Method 2, traversemapper
 #rough_graph_mapper traversemapper -t 70 -r $fasta -f sim.fa -d $obg_graph_dir -c $chromosomes -o traversemapped.graphalignments
@@ -152,8 +160,7 @@ join vg-pan-se.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold >vg.c
 
 # Vg using mitty reads
 time vg map -f reads_mitty_with_errors.fq -x $pan_xg -g $pan_gcsa -t $threads --refpos-table | sort  > vg-pan-se-mitty.pos
-# (join on everything before first |, because seems like vg can change the read ID after that)
-join -t "|" vg-pan-se-mitty.pos sim.gam.truth.mitty.tsv | ../vg_sim_pos_compare.py $threshold > vg_mitty.compare
+join vg-pan-se-mitty.pos sim.gam.truth.mitty.tsv | ../vg_sim_pos_compare.py $threshold > vg_mitty.compare
 
 # Seven bridges
 # This will only be run if seven bridges have been run seperately and sam files are present
@@ -164,7 +171,7 @@ then
 
     # Seven bridges using mitty
     awk '$2!=2048 && $2 != 2064' seven_bridges_mitty.sam | grep -v ^@ | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort > seven_bridges_mitty.pos
-    join  -t "|" seven_bridges_mitty.pos sim.gam.truth.mitty.tsv | ../vg_sim_pos_compare.py $threshold > seven_bridges_mitty.compare
+    join  seven_bridges_mitty.pos sim.gam.truth.mitty.tsv | ../vg_sim_pos_compare.py $threshold > seven_bridges_mitty.compare
 
 else
     echo " ====================
