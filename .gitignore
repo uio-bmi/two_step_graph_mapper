@@ -10,3 +10,10 @@ __pycache__
 *.intervalcollection*
 *.tmp
 *.fasta
+benchmarking/mhc_benchmark
+benchmarking/mhc_graph_data
+*.pos
+*.gz
+*.tsv
+*.vcf
+
