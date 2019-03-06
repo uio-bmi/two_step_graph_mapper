@@ -120,7 +120,7 @@ join two_step_graph_mapper.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $thr
 # Method 2: Graph minimap
 rough_graph_mapper map_linear_to_graph --min-mapq 35 -t $threads -r $fasta -f sim.fa -d $obg_graph_dir -c $chromosomes -o linear_to_graph_mapped_min_mapq35.graphalignments
 rough_graph_mapper remove_reads_from_fasta -f sim.fa -a linear_to_graph_mapped_min_mapq35.graphalignments > sim_under_mapq35.fa
-graph_minimap sim_under_mapq35.fa $graph_minimap_index $ob_numpy_graphs $threads graph_minimap.graphalignments.tmp
+graph_minimap -f sim_under_mapq35.fa -i $graph_minimap_index -g $ob_numpy_graphs -t $threads -o graph_minimap.graphalignments.tmp
 cat linear_to_graph_mapped_min_mapq35.graphalignments graph_minimap.graphalignments.tmp > graph_minimap.graphalignments
 two_step_graph_mapper predict_path -t $threads -d $obg_graph_dir -a graph_minimap.graphalignments -c $chromosomes --linear-ref-bonus 1 -o predicted_path_graph_minimap
 two_step_graph_mapper map_to_path -t $threads -r predicted_path_graph_minimap.fa -f sim.fa -o two_step_graph_mapper_graph_minimap.sam
