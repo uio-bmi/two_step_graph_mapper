@@ -180,6 +180,7 @@ fi
 
 
 # 5) Two-step using vg alignments
+echo "Two-step using vg alignments"
 vg map -G sim.gam -x $pan_xg -g $pan_gcsa -t $threads --output-json  > vg.json
 two_step_graph_mapper predict_path -t $threads -d $obg_graph_dir -a vg.json -c $chromosomes --linear-ref-bonus 1 -o predicted_path_vg
 two_step_graph_mapper map_to_path -t $threads -r predicted_path_vg.fa -f sim.fa -o two_step_graph_mapper_vg.sam
