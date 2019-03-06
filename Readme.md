@@ -56,7 +56,7 @@ Thus, we have created a Docker image that contains everything that is needed. To
 to install the Docker image (this should take 10-15 minutes):
 ```bash
 git clone https://github.com/uio-bmi/graph_mapping_benchmarking.git
-cd graph_mapping_benchmarking/benchmarking
+cd graph_mapping_benchmarking
 docker build -t graph_mapping_benchmarking .
 ```
 
@@ -64,7 +64,7 @@ When the image is built, run the image interactively and change directory to thi
 (which automatically is included in the container):
 ```bash
 docker run -it graph_mapping_benchmarking
-cd two_step_graph_mapper   # Go inside this repository inside the container, and you are ready to run the benchmarks
+cd two_step_graph_mapper/benchmarking  # Go inside this repository inside the container, and you are ready to run the benchmarks
 ```
 
 You are now ready to run the experiments. There are two experiments available. The first ("Quick and rough benchmarking") is quick to run (approximately 30 minutes),
