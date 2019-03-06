@@ -124,7 +124,7 @@ These are the commands used to generate the figures in the manuscript.
 ../create_roc_plots.sh vg,vg_mitty,seven_bridges,seven_bridges_mitty,hisat,hisat_mitty
 
 # Figure 2
-../create_roc_plots.sh vg,bwa,bwa_untuned
+../create_roc_plots.sh vg,bwa,bwa_untuned,hisat,seven_bridges
 
 # Figure 3
 ../create_roc_plots.sh vg,two_step_graph_mapper_vg,bwa
