@@ -7,11 +7,7 @@ set -e
     #sudo docker run quay.io/vgteam/vg:v1.12.1 vg "$@"
 #}
 
-<<<<<<< HEAD
 if [ $# -ne 24 ];
-=======
-if [ $# -ne 22 ];
->>>>>>> ee7c468286507340cc5a081385ec4b98c67d1ad4
 then
     echo "Invalid input parameters. Check Readme for examples on how to run."
     exit
@@ -38,13 +34,9 @@ graph_vcf_file=${18}
 simulation_vcf_file=${19}
 simulation_chromosome=${20}
 simulation_chromosome_size=${21}
-<<<<<<< HEAD
 hisat2_index=${22}
 graph_minimap_index=${23}
 ob_numpy_graphs=${24}
-=======
-hisat2_index={$22}
->>>>>>> ee7c468286507340cc5a081385ec4b98c67d1ad4
 
 pan_xg=$pan.xg
 pan_gcsa=$pan.gcsa
