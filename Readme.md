@@ -15,8 +15,8 @@ pip3 install .
 ## How to use 
 First, you need some graphalignments, e.g. from running vg or rough_graph_mapper. 
 If using the rough_graph_mapper, you will need to specify the chromosomes that you are running on after `--chromosomes`.
-The `graphs_dir/` is a directory containing graphs. You can test with the directory `benchmarking/mhc_graph_data/` in this repository, which contains
-one test-graph for chromosome 6. You will also find a link to a full human graph under the Benchmarking section further down.
+The `graphs_dir/` is a directory containing graphs. You can test with any of the two graph directories linked to under the Benchmarking
+ section below. 
 
 ```bash
 rough_graph_mapper map_linear_to_graph -r linear_reference.fa -f reads.fa -d graphs_dir/ --chromosomes 1,2,3 > some.graphalignments
@@ -40,7 +40,7 @@ two_step_graph_mapper convert_to_reference_positions -s aligned_reads.sam -d gra
 ```
 
 # Benchmarking
-The following explaind how to run the benchmarks as presented in the manuscript. 
+The following explains how to run the benchmarks presented in the manuscript. 
 
 **NOTE**: Seven Bridges is not directly assessed with these scripts, since a license is required in order to run the Seven Bridges mapper. 
 For including Seven Bridges in these tests, [get a license](http://sevenbridges.com/graph-genome-academic-release) and run Seven Bridges 
@@ -133,7 +133,7 @@ These are the commands used to generate the figures in the manuscript.
 ../create_roc_plots.sh vg,bwa,two_step_graph_mapper_vg
 
 # Figure 5
-../create_roc_plots.sh vg,bwa,seven_bridges,hisat,two_step_graph_mapper_graph_minimap,two_step_graph_mapper_linearmapped
+../create_roc_plots.sh vg,bwa,seven_bridges,hisat,two_step_graph_mapper_linearmapped
 ```
 
 
