@@ -40,26 +40,51 @@ We can convert the coordinates to linear reference genome coordinates by running
 two_step_graph_mapper convert_to_reference_positions -s aligned_reads.sam -d graph_dir/ -l my_predicted_path -c 1,2,3 -o converted.sam
 ```
 
-## Benchmarking
-**NB**: Seven Bridges is not directly assessed with these scripts, since a license is required in order to run the Seven Bridges mapper. 
+# Benchmarking
+The following explaind how to run the benchmarks as presented in the manuscript. 
+
+**NOTE**: Seven Bridges is not directly assessed with these scripts, since a license is required in order to run the Seven Bridges mapper. 
 For including Seven Bridges in these tests, [get a license](http://sevenbridges.com/graph-genome-academic-release) and run Seven Bridges 
 using the sim.fq and reads_mitty.fq files produced by first running this benchmark. Then, simply put the sam files produces by the Seven Bridges mapper in this directory (they must be called `seven_bridges.sam` and `seven_bridges_mitty.sam`), and they will be included in the report.
 
+## Initial setup
+There are many software dependencies required for comparing all the mapping tools, and install all of them is a tedious process.
+Thus, we have created a Docker image that contains everything that is needed. To get started, install this image by cloning the
+repository containing the Docker file that will build the image, and build the Docker image:
+```bash
+git clone https://github.com/uio-bmi/graph_mapping_benchmarking.git
+cd graph_mapping_benchmarking
+docker build -t graph_mapping_benchmarking .
+```
+Building the image should take 15-20 minutes.
+
+When the image is built, you can enter the container, and you will then be ready to run the experiments (see the two different experiments below):
+```bash
+docker run -it graph_mapping_benchmarking
+cd two_step_graph_mapper   # Go inside this repository inside the container, and you are ready to run the benchmarks
+```
 
 ### Quick and rough benchmarking
 This test acts as an integration test, to see that everything is working and to get a quick overview of the
 performance. The test takes about 30 minutes to run on a laptop.
 
-All necessary graphs for running this test are included in this repository. 
-The only thing you need is [vg](https://github.com/vgteam/vg) installed on your system.
-Simply run the run_benchmarking.sh script like this, standing in the mhc_benchmark folder:
+Assuming you are inside the Docker container (see guide above), simply download the MHC graphs and run the run_benchmarking.sh script like this, standing in the mhc_benchmark folder:
 ```bash
-cd benchmarking/mhc_benchmark
-../run_benchmark.sh None ../mhc_graph_data/linear_ref.fa None ../mhc_graph_data/wg ../mhc_graph_data/giab_chr6_haplotype0 ../mhc_graph_data/giab_chr6_haplotype1 \
-       ../mhc_graph_data/giab ../mhc_graph_data/giab_reference 75 "--forward-only -n 250000 -e 0.01 -i 0.002 -l 150" 2358792 150 "" ../mhc_graph_data/ 6  ../mhc_graph_data/giab_chr6.nobg ../mhc_graph_data/giab_reference_path_6.intervalcollection.indexed ../mhc_graph_data/1000genomes_variants.vcf ../mhc_graph_data/giab_variants.vcf.gz 6 4970557
+# Be positoned in the benchmarking directory
+wget http://158.39.75.109/mhc_graph_data.tar.gz && tar -xzf mhc_graph_data.tar.gz
+# Go to the benchmark directory and run the benchmarks
+cd mhc_benchmark
+# Copy and paste everything below:
+../run_benchmark.sh None ../mhc_graph_data/linear_ref.fa None ../mhc_graph_data/wg ../mhc_graph_data/giab_chr6_haplotype0 \
+       ../mhc_graph_data/giab_chr6_haplotype1 ../mhc_graph_data/giab ../mhc_graph_data/giab_reference 75 \
+       "--forward-only -n 250000 -e 0.01 -i 0.002 -l 150" 2358792 150 "" ../mhc_graph_data/ 6  \
+       ../mhc_graph_data/giab_chr6.nobg ../mhc_graph_data/giab_reference_path_6.intervalcollection.indexed \
+       ../mhc_graph_data/1000genomes_variants.vcf ../mhc_graph_data/giab_variants.vcf.gz 6 4970557 \
+       ../mhc_graph_data/hisat2_index ../mhc_graph_data/graph_minimap_index ../mhc_graph_data/numpy_graph
 ```
-Three plots will be produces in the folder you are running from: roc-builder.png, roc-novel-builder.png and roc-known-builder.png.
-If the vg roc-plot scripts fail with some xml error, you might need to install lib-xml (on ubuntu: `sudo apt-get install libxml2-dev`)
+
+If successfully run, you will end up with a lot of `.compare` files, one for each read mapper. 
+You can now generate ROC plots for those you want. See the "Generating ROC plots" section below.
 
 ### Reproducing the results from the manuscript: Thorough benchmarking on whole genome 1000 genomes graph
 This benchmark takes about 10-15 hours to run. First download all the graph data and graph indices (these are not included in this repo). 
@@ -82,11 +107,13 @@ threads=32  # Number of threads you want to use
     $graph_dir 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,X None None None None 20 63025520 
 ```
 
-A lot of `.compare` files will be created, one for each method. We can now generate the roc plots choosing the methods we want. 
-Below are the exact commands used to generate the figures in the paper:
+If successfully run, you will end up with a lot of `.compare` files, one for each read mapper. 
+You can now generate ROC plots for those you want. See the "Generating ROC plots" section below. 
 
+## Generating ROC plots
+These are the commands used to generate the figures in the manuscript.
 ```bash
-# You should be positioned in the directory that you ran the benchmarking from
+# You should be positioned in the directory that you ran the benchmarking from, e.g. "mhc_benchmark" for the mhc benchmarking
 # Figure 1
 ../create_roc_plots.sh vg,vg_mitty,seven_bridges,seven_bridges_mitty
 
