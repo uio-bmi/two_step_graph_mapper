@@ -117,18 +117,6 @@ two_step_graph_mapper convert_to_reference_positions -s two_step_graph_mapper.sa
 awk '$2!=2048 && $2 != 2064' two_step_graph_mapper_on_reference.sam | grep -v ^@ | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort >two_step_graph_mapper.pos
 join two_step_graph_mapper.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold >two_step_graph_mapper_linearmapped.compare
 
-# Method 2: Graph minimap
-rough_graph_mapper map_linear_to_graph --min-mapq 35 -t $threads -r $fasta -f sim.fa -d $obg_graph_dir -c $chromosomes -o linear_to_graph_mapped_min_mapq35.graphalignments
-rough_graph_mapper remove_reads_from_fasta -f sim.fa -a linear_to_graph_mapped_min_mapq35.graphalignments > sim_under_mapq35.fa
-graph_minimap -f sim_under_mapq35.fa -i $graph_minimap_index -g $ob_numpy_graphs -t $threads -o graph_minimap.graphalignments.tmp
-cut -f 1,6 graph_minimap.graphalignments.tmp > graph_minimap.graphalignments.only_intervals
-cat linear_to_graph_mapped_min_mapq35.graphalignments graph_minimap.graphalignments.only_intervals > graph_minimap.graphalignments
-two_step_graph_mapper predict_path -t $threads -d $obg_graph_dir -a graph_minimap.graphalignments -c $chromosomes --linear-ref-bonus 1 -o predicted_path_graph_minimap
-two_step_graph_mapper map_to_path -t $threads -r predicted_path_graph_minimap.fa -f sim.fa -o two_step_graph_mapper_graph_minimap.sam
-two_step_graph_mapper convert_to_reference_positions -s two_step_graph_mapper_graph_minimap.sam -d $obg_graph_dir/ -l predicted_path_graph_minimap -c $chromosomes -o two_step_graph_mapper_on_reference_graph_minimap.sam
-awk '$2!=2048 && $2 != 2064' two_step_graph_mapper_on_reference_graph_minimap.sam | grep -v ^@ | awk -v OFS="\t" '{$4=($4 + 0); print}' | cut -f 1,3,4,5,14 | sed s/AS:i:// | sort >two_step_graph_mapper_graph_minimap.pos
-join two_step_graph_mapper_graph_minimap.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold >two_step_graph_mapper_graph_minimap.compare
-
 
 # Hisat 2
 hisat2 -p 30 -q sim.fq --no-spliced-alignment -x $hisat2_index > hisat.sam
