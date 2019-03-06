@@ -121,7 +121,8 @@ join two_step_graph_mapper.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $thr
 rough_graph_mapper map_linear_to_graph --min-mapq 35 -t $threads -r $fasta -f sim.fa -d $obg_graph_dir -c $chromosomes -o linear_to_graph_mapped_min_mapq35.graphalignments
 rough_graph_mapper remove_reads_from_fasta -f sim.fa -a linear_to_graph_mapped_min_mapq35.graphalignments > sim_under_mapq35.fa
 graph_minimap -f sim_under_mapq35.fa -i $graph_minimap_index -g $ob_numpy_graphs -t $threads -o graph_minimap.graphalignments.tmp
-cat linear_to_graph_mapped_min_mapq35.graphalignments graph_minimap.graphalignments.tmp > graph_minimap.graphalignments
+cut -f 1,6 graph_minimap.graphalignments.tmp > graph_minimap.graphalignments.only_intervals
+cat linear_to_graph_mapped_min_mapq35.graphalignments graph_minimap.graphalignments.only_intervals > graph_minimap.graphalignments
 two_step_graph_mapper predict_path -t $threads -d $obg_graph_dir -a graph_minimap.graphalignments -c $chromosomes --linear-ref-bonus 1 -o predicted_path_graph_minimap
 two_step_graph_mapper map_to_path -t $threads -r predicted_path_graph_minimap.fa -f sim.fa -o two_step_graph_mapper_graph_minimap.sam
 two_step_graph_mapper convert_to_reference_positions -s two_step_graph_mapper_graph_minimap.sam -d $obg_graph_dir/ -l predicted_path_graph_minimap -c $chromosomes -o two_step_graph_mapper_on_reference_graph_minimap.sam
@@ -154,11 +155,11 @@ join bwa-untuned.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold > b
 # 4) vg
 echo "vg pan single mappping"
 time vg map $vg_map_opts -G sim.gam -x $pan_xg -g $pan_gcsa -t $threads --refpos-table | sort  > vg.pos
-join vg-pan-se.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold >vg.compare
+join vg.pos sim.gam.truth.tsv | ../vg_sim_pos_compare.py $threshold >vg.compare
 
 # Vg using mitty reads
-time vg map -f reads_mitty_with_errors.fq -x $pan_xg -g $pan_gcsa -t $threads --refpos-table | sort  > vg-pan-se-mitty.pos
-join vg-pan-se-mitty.pos sim.gam.truth.mitty.tsv | ../vg_sim_pos_compare.py $threshold > vg_mitty.compare
+time vg map -f reads_mitty_with_errors.fq -x $pan_xg -g $pan_gcsa -t $threads --refpos-table | sort  > vg_mitty.pos
+join vg_mitty.pos sim.gam.truth.mitty.tsv | ../vg_sim_pos_compare.py $threshold > vg_mitty.compare
 
 # Seven bridges
 # This will only be run if seven bridges have been run seperately and sam files are present
