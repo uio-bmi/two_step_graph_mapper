@@ -3,8 +3,7 @@
 ## Install
 BWA-MEM and Minimap2 are requirements. Make sure they are installed first.
 
-For running the experiments described further down on this page, also [vg](http://github.com/vgteam/vg) and 
-[Mitty](https://github.com/sbg/Mitty) (Seven Bridges' tool for simulating reads) are needed.
+If you want to run experiments comparing Two Step Graph Mapper with other graph-based read mappers, see the "Benchmarking" section further down.
 
 Assuming you have BWA-MEM and Minimap 2 installed, you can install Two-step Graph Mapper by cloning and using pip:
 ```bash
