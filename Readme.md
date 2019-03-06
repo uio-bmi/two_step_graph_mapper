@@ -135,7 +135,17 @@ These are the commands used to generate the figures in the manuscript.
 # Figure 5
 ../create_roc_plots.sh vg,bwa,seven_bridges,hisat,two_step_graph_mapper_linearmapped
 ```
+When running one of those commands, the final ouput should be something like `Report created at 1551899104/report.html`.
+This means you now have a html report with figures, which you can open in a web browser. 
+The number is a timestamp and will be unique each time. If you ran the bencmarking inside a Docker repo, you 
+typically cannot open the html report inside the container. In that case, you can copy the report out:
 
+```bash
+exit  # Exit the docker container
+docker cp [container ID]:/two_step_graph_mapper/benchmarking/mhc_benchmark/[report directory id] .
+```
+Replace [container ID] with the ID of the container (run `docker ps -a` to see all containers with ID). Replace [report directory ID]
+with the directory of the report, e.g. 1551899104. After copying, you should be able to open the report in a web browser.
 
 
 
