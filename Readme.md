@@ -77,7 +77,7 @@ Assuming you are inside the Docker container (see guide above), simply download 
  (make sure you are positioned in the two_step_graph_mapper/benchmarking directory before running this):
 ```bash
 # Be positoned in the benchmarking directory
-wget http://158.39.75.109/mhc_graph_data.tar.gz && tar -xzf mhc_graph_data.tar.gz
+wget https://zenodo.org/record/2586090/files/mhc_graph_data.tar.gz?download=1 && tar -xzf mhc_graph_data.tar.gz
 # We now create a dedicated directory for running the mhc benchmarks:
 mkdir mhc_benchmark && cd mhc_benchmark
 # Now, the benchmarks are run with this single command. Copy and paste everything below:
@@ -93,9 +93,9 @@ If successfully run, you will end up with a lot of `.compare` files, one for eac
 You can now generate ROC plots for those you want. See the "Generating ROC plots" section below.
 
 ### Reproducing the results from the manuscript: Thorough benchmarking on whole genome 1000 genomes graph
-This benchmark takes several hours to run. First download all the graph data and graph indices (these are not included in this repo). 
-* [Pruned 1000 genomes graph](http://158.39.75.109/human_pruned_1pc.tar), containing ~14m variants (only those with allele frequency >= 1%)
-* [Graphs representing the GIAB sample that we simulate reads from](http://158.39.75.109/simulation_data.tar)
+This benchmark takes several hours to run. First download all the graph data and graph indices. 
+* [Pruned 1000 genomes graph](https://zenodo.org/record/2586090/files/human_pruned_1pc.tar.gz?download=1), containing ~14m variants (only those with allele frequency >= 1%)
+* [Graphs representing the GIAB sample that we simulate reads from](https://zenodo.org/record/2586090/files/simulation_data.tar.gz?download=1)
 
 Download both of these and extract the contents somewhere. The first one is your `graph_dir`, the second one is your `simulation_data_dir`
 
@@ -110,7 +110,7 @@ threads=32  # Number of threads you want to use
 # Run the benchmarks
 ../run_benchmark.sh None $simulation_data_dir/hg19_chr1-Y.fa None $graph_dir/wg $simulation_data_dir/haplotype0_only_chr20_no_paths $simulation_data_dir/haplotype1_only_chr20_no_paths \
     $simulation_data_dir/giab $simulation_data_dir/giab_only_reference $threads "--forward-only -n 5000000 -e 0.01 -i 0.002 -l 150" 2358792 150 "" \
-    $graph_dir 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,X None None None None 20 63025520 
+    $graph_dir 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,X None None None None 20 63025520 $graph_dir/hisat2_index None None
 ```
 
 If successfully run, you will end up with a lot of `.compare` files, one for each read mapper. 
