@@ -77,7 +77,7 @@ Assuming you are inside the Docker container (see guide above), simply download 
  (make sure you are positioned in the two_step_graph_mapper/benchmarking directory before running this):
 ```bash
 # Be positoned in the benchmarking directory
-wget https://zenodo.org/record/2586090/files/mhc_graph_data.tar.gz?download=1 && tar -xzf mhc_graph_data.tar.gz
+wget -O mhc_graph_data.tar.gz https://zenodo.org/record/2586090/files/mhc_graph_data.tar.gz?download=1 && tar -xzf mhc_graph_data.tar.gz
 # We now create a dedicated directory for running the mhc benchmarks:
 mkdir mhc_benchmark && cd mhc_benchmark
 # Now, the benchmarks are run with this single command. Copy and paste everything below:
