@@ -52,7 +52,7 @@ using the sim.fq and reads_mitty.fq files produced by first running this benchma
 ## Initial setup
 There are many software dependencies required for comparing all the mapping tools, and installing all of them is a tedious process.
 Thus, we have created a Docker image that contains everything that is needed. To get started, run the following commands
-to install the Docker image (this should take 10-15 minutes):
+to install the Docker image (this should take about 30 minutes):
 ```bash
 git clone https://github.com/uio-bmi/graph_mapping_benchmarking.git
 cd graph_mapping_benchmarking
