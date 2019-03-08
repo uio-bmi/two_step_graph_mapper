@@ -71,7 +71,8 @@ and can be run on a normal computer. The second is a full benchmark which requir
 
 ### Quick and rough benchmarking
 This acts as an integration test to see that everything is working and to get a quick overview of the
-performance of the different mapping methods. The test takes about 30 minutes to run on a laptop.
+performance of the different mapping methods. The test takes about an hour to run on a laptop (and an extra 30 minutes
+to build the Docker image the first time).
 
 Assuming you are inside the Docker container (see guide above), simply download the MHC graphs and run the run_benchmarking.sh script like this
  (make sure you are positioned in the two_step_graph_mapper/benchmarking directory before running this):
