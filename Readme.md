@@ -111,7 +111,8 @@ threads=32  # Number of threads you want to use
 # Run the benchmarks
 ../run_benchmark.sh None $simulation_data_dir/hg19_chr1-Y.fa None $graph_dir/wg $simulation_data_dir/haplotype0_only_chr20_no_paths $simulation_data_dir/haplotype1_only_chr20_no_paths \
     $simulation_data_dir/giab $simulation_data_dir/giab_only_reference $threads "--forward-only -n 5000000 -e 0.01 -i 0.002 -l 150" 2358792 150 "" \
-    $graph_dir 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,X None None None None 20 63025520 $graph_dir/hisat2_index None None
+    $graph_dir 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,X $simulation_data_dir/giab_chr20.nobg  giab_reference_path_20.intervalcollection.indexed \
+    None $simulation_data_dir/variants.vcf.gz 20 63025520 $graph_dir/hisat2_index None None
 ```
 
 If successfully run, you will end up with a lot of `.compare` files, one for each read mapper. 
