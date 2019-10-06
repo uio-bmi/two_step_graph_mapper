@@ -120,8 +120,8 @@ def run_predict_path(args):
 
 def run_argument_parser(args):
 
-    if shutil.which("bwa") is None:
-        logging.error("BWA MEM cannot be found in path. Make sure BWA is installed.")
+    if shutil.which("bwa-mem2") is None:
+        logging.error("BWA MEM (bwa-mem2) cannot be found in path. Make sure BWA MEM 2 is installed.")
         sys.exit()
     if shutil.which("minimap2") is None:
         logging.error("minimap2 cannot be found in path. Make sure minimap2 is installed")
