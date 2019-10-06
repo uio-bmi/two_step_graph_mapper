@@ -1,4 +1,5 @@
 import logging
+logging.basicConfig(level=logging.INFO)
 import os
 from tqdm import tqdm
 import shutil
@@ -8,48 +9,81 @@ import sys
 from multiprocessing import Process
 from offsetbasedgraph import Graph, SequenceGraph, NumpyIndexedInterval, IntervalCollection
 from .path_predicter import PathPredicter
-from rough_graph_mapper.util import run_hybrid_between_bwa_and_minimap
+from rough_graph_mapper.util import run_hybrid_between_bwa_and_minimap, run_bwa_mem
 from .project_alignments import run_project_alignments
-logging.basicConfig(level=logging.INFO)
-
+from pyfaidx import Fasta
+from .util import get_variant_edges
+import pickle
 
 def main():
     run_argument_parser(sys.argv[1:])
 
 
+def get_variant_edges_wrapper(args):
+    chromosome = args.chromosome
+    linear_path = NumpyIndexedInterval.from_file(args.data_dir + "/" + chromosome + "_linear_pathv2.interval")
+    linear_ref_nodes = linear_path.nodes_in_interval()
+    graph = Graph.from_file(args.data_dir + "/" + chromosome + ".nobg")
+    sequence_graph = SequenceGraph.from_file(args.data_dir + "/" + chromosome + ".nobg.sequences")
+    haplotype_fasta = Fasta(args.fasta_file)
+
+    edges = get_variant_edges(chromosome, graph, sequence_graph, linear_ref_nodes, haplotype_fasta)
+
+    with open(args.out_file_name, "wb") as f:
+        pickle.dump(edges, f)
+
+    logging.info("Wrote edges to file %s" % args.out_file_name)
+
 def run_map_to_path(args):
     n_threads = args.n_threads
-    minimap_arguments = "-t %d -k19 -w11 --sr --frag=yes -A2 -B8 -O12,32 -E2,1 -r50 -p.5 -f90000,180000 -n2 -m20 -s40 -g200 -2K50m --heap-sort=yes -N 7 -a" % n_threads
-    run_hybrid_between_bwa_and_minimap(args.linear_ref, args.fasta, args.output_file_name,
-                                       bwa_arguments="-D 0.05 -h 10000000 -t %d" % args.n_threads,
+    if args.minimap_arguments is None:
+        minimap_arguments = "-t %d -k19 -w11 --sr --frag=yes -A2 -B8 -O12,32 -E2,1 -r50 -p.5 -f90000,180000 -n2 -m20 -s40 -g200 -2K50m --heap-sort=yes -N 7 -a" % n_threads
+    else:
+        logging.info("Using custom minimap arguments: %s" % args.minimap_arguments)
+        minimap_arguments = args.minimap_arguments
+
+    if args.bwa_arguments is None:
+        bwa_arguments = "-D 0.05 -h 10000000 -t %d" % args.n_threads
+    else:
+        logging.info("Using custom bwa arguments: %s" % args.bwa_arguments)
+        bwa_arguments = args.bwa_arguments
+
+
+    if args.skip_mapq_adjustment:
+        logging.info("Only running BWA-MEM (not minimap2)")
+        run_bwa_mem(args.linear_ref, args.fasta, args.output_file_name, bwa_arguments)
+    else:
+        run_hybrid_between_bwa_and_minimap(args.linear_ref, args.fasta, args.output_file_name,
+                                       bwa_arguments=bwa_arguments,
                                        minimap_arguments=minimap_arguments)
 
 
 def run_predict_path_single_chromosome(alignment_file_name, chromosome, graph_dir,
-                                       linear_ref_bonus, out_file_base_name, max_nodes_to_traverse):
+                                       linear_ref_bonus, out_file_base_name, max_nodes_to_traverse, input_is_edgecounts):
     sequence_graph = SequenceGraph.from_file(graph_dir + chromosome + ".nobg.sequences")
     graph = Graph.from_file(graph_dir + chromosome + ".nobg")
     linear_path = NumpyIndexedInterval.from_file(graph_dir + "/%s_linear_pathv2.interval" % chromosome)
     PathPredicter(alignment_file_name, graph, sequence_graph, chromosome, linear_path, out_file_base_name,
-                  linear_ref_bonus=linear_ref_bonus, max_nodes_to_traverse=max_nodes_to_traverse)
+                  linear_ref_bonus=linear_ref_bonus, max_nodes_to_traverse=max_nodes_to_traverse,
+                  input_is_edgecounts=input_is_edgecounts)
 
 
 def run_bwa_index(fasta_file_name):
-    command = "bwa index " + fasta_file_name
+    command = "bwa-mem2 index " + fasta_file_name
     subprocess.check_output(command.split())
 
 
 def run_predict_path(args):
     chromosomes = args.chromosomes.split(",")
     processes = []
-    if not os.path.isfile(args.alignments):
+    if not os.path.isfile(args.alignments) and not args.input_is_edgecounts:
         logging.error("Input alignments file %s does not exist" % args.alignments)
         sys.exit()
 
     for chromosome in chromosomes:
         logging.info("Starting process for chromosome %s " % chromosome)
         process = Process(target=run_predict_path_single_chromosome,
-                          args=(args.alignments, chromosome, args.data_dir, args.linear_ref_bonus, args.out_file_name, args.max_nodes_to_traverse))
+                          args=(args.alignments, chromosome, args.data_dir, args.linear_ref_bonus, args.out_file_name, args.max_nodes_to_traverse, args.input_is_edgecounts))
         process.start()
         processes.append(process)
 
@@ -111,6 +145,7 @@ def run_argument_parser(args):
     subparser_predict.add_argument("-o", "--out-file-name", help="Output file name", required=True)
     subparser_predict.add_argument("-s", "--skip-bwa-index", default=False, required=False, help="Set to True to skip creation of bwa index")
     subparser_predict.add_argument("-m", "--max-nodes-to-traverse", type=int, default=None, required=False, help="For debugging/testing. Max number of nodes in graph to traverse.")
+    subparser_predict.add_argument("-e", "--input-is-edgecounts", type=bool, default=False, required=False, help="Set to true if input is edgecounts (pickled dict of edgecounts).")
     subparser_predict.set_defaults(func=run_predict_path)
 
     subparser_map = subparsers.add_parser("map_to_path", help="Map to a predicted path")
@@ -118,6 +153,9 @@ def run_argument_parser(args):
     subparser_map.add_argument("-f", "--fasta", help="Fasta file to map", required=True)
     subparser_map.add_argument("-o", "--output_file_name", help="Name of output sam file", required=True)
     subparser_map.add_argument("-t", "--n-threads", help="Number of threads to use", type=int, default=8, required=False)
+    subparser_map.add_argument("-m", "--minimap-arguments", help="Arguments that will be used with minimap. Only change if you know what you do.", type=str, default=None, required=False)
+    subparser_map.add_argument("-b", "--bwa-arguments", help="Arguments that will be used with BWA-MEM. Only change if you know what you do.", type=str, default=None, required=False)
+    subparser_map.add_argument("-q", "--skip-mapq-adjustment", help="If set to True, minimap2 will not be run to improve mapq's.", type=bool, default=False, required=False)
     subparser_map.set_defaults(func=run_map_to_path)
 
     subparser_project = subparsers.add_parser("convert_to_reference_positions", help="Convert positions in a mapped sam file to positions on reference genome")
@@ -127,6 +165,14 @@ def run_argument_parser(args):
     subparser_project.add_argument("-c", "--chromosomes", required=True)
     subparser_project.add_argument("-o", "--out-sam", required=True, help="Name of sam file to write modified alignments to")
     subparser_project.set_defaults(func=run_project_alignments)
+
+    s = subparsers.add_parser("get_variant_edges", help="Utility functionality: Finds edges supported by a haploid fasta sequence through the graph")
+    s.add_argument("-f", "--fasta_file", help="Haplotype fasta file", required=True)
+    s.add_argument("-c", "--chromosome", required=True)
+    s.add_argument("-d", "--data-dir", required=True)
+    s.add_argument("-o", "--out_file_name", required=True)
+    s.set_defaults(func=get_variant_edges_wrapper)
+
 
     if len(args) == 0:
         parser.print_help()

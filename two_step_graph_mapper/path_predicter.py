@@ -1,12 +1,15 @@
 from pyvg.conversion import vg_json_file_to_interval_collection
 from offsetbasedgraph import IntervalCollection, Interval
 from collections import defaultdict
+import pickle
 import logging
+import numpy as np
 
 
 class PathPredicter:
     def __init__(self, alignment_file_name, graph, sequence_graph, chromosome, linear_interval_path,
-                 out_file_base_name, linear_ref_bonus=1, max_nodes_to_traverse=None):
+                 out_file_base_name, linear_ref_bonus=1, max_nodes_to_traverse=None, input_is_edgecounts=False):
+        self.input_is_edgecounts = input_is_edgecounts
         self.alignment_file_name = alignment_file_name
         self.graph = graph
         self.sequence_graph = sequence_graph
@@ -23,7 +26,9 @@ class PathPredicter:
         self.predict_path()
 
     def _read_alignments(self):
-        if self.alignment_file_name.endswith(".json"):
+        if self.input_is_edgecounts:
+            self.alignments = pickle.load(open(self.alignment_file_name + "_" + self.chromosome + ".edgecounts", "rb"))
+        elif self.alignment_file_name.endswith(".json"):
             self.alignments = vg_json_file_to_interval_collection(self.alignment_file_name).intervals
         elif self.alignment_file_name.endswith(".graphnodes"):
             self.alignments = (Interval(0, 1, [int(n) for n in line.strip().split()[1].split(",")])
@@ -34,6 +39,18 @@ class PathPredicter:
             self.alignments = IntervalCollection.from_file(self.alignment_file_name).intervals
 
     def _get_edge_counts_from_alignments(self):
+        if self.input_is_edgecounts:
+            self.edge_counts = defaultdict(int)
+            logging.info("Input is edge counts.")
+            total_counts = 0
+            for edge, counts in self.alignments.items():
+                self.edge_counts["%d-%d" % edge] = counts
+                total_counts += counts
+
+            logging.info("Average number of reads per edge: %d" % (total_counts / (len(self.alignments.values())+1)))
+
+            return
+
         edge_counts = defaultdict(int)
         graph_min_node = self.graph.blocks.node_id_offset - 1
         graph_max_node = self.graph.blocks.max_node_id()
@@ -107,6 +124,9 @@ class PathPredicter:
                             n_special_case += 1
 
                         # If already found something on linear ref, and this does not have more reads or lower id (not insertion), ignore
+                        # This is to avoid taking insertions (going to a higher node on the linear reference when there
+                        # are really no reads to support such choice), i.e. instead default just to follow the linear
+                        # ref
                         if has_found_candidate_on_linear_ref and n_reads == most_reads and next_node > most_reads_node:
                             continue  # Ignore this alternative
 
