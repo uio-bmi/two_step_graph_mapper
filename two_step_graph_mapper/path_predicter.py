@@ -78,6 +78,9 @@ class PathPredicter:
         logging.info("Using linear out base name %s" % self.out_file_base_name)
         out_file = open("%s_%s.fasta" % (self.out_file_base_name, self.chromosome), "w")
 
+        n_insertions = 0
+        n_deletions = 0
+
         # Traverse
         first_nodes = self.graph.get_first_blocks()
         assert len(first_nodes) == 1
@@ -141,8 +144,17 @@ class PathPredicter:
 
                 assert most_reads_node is not None
 
+                # Decide what kind of variant this is
+                if node in self.linear_path_nodes and most_reads_node not in self.linear_path_nodes:
+                    n_insertions += 1
+                elif node in self.linear_path_nodes and most_reads_node in self.linear_path_nodes:
+                    other_linear_out = [n for n in self.graph.adj_list[node] if n in self.linear_path_nodes and n != most_reads_node and n < most_reads_node]
+                    if len(other_linear_out):
+                        n_deletions += 1
+
                 edges_chosen.add("%d-%d" % (node, most_reads_node))
                 node = most_reads_node
+
 
                 if most_reads == 0:
                     # Assert we have taken linear ref path if exists
@@ -169,6 +181,8 @@ class PathPredicter:
                                                           text_file=True)
 
         logging.info("=== STATS FOR CHROMOSOME %s ===" % self.chromosome)
+        logging.info("N insertions/SNPs found: %d" % n_insertions)
+        logging.info("N deletions found: %d" % n_deletions)
         logging.info("N ambigious choices: %d" % n_ambigious)
         logging.info("Total nodes in linear ref: %d" % len(self.linear_path_nodes))
         logging.info("N nodes chosen that are not in linear ref: %d " % n_not_on_linear)
