@@ -3,6 +3,7 @@ from offsetbasedgraph import IntervalCollection, Interval
 from collections import defaultdict
 import pickle
 import logging
+import scipy
 import numpy as np
 
 
@@ -118,6 +119,24 @@ class PathPredicter:
                 most_reads_node = next_nodes[0]
                 has_found_candidate_on_linear_ref = False
 
+                # Choose the edge with lowest p-value according to a binomial test.
+                # If no significant, choose the linear ref path (first next node on linear ref)
+                probability = 1 / len(next_nodes)
+                total_reads = sum([self.edge_counts["%s-%s"] % (node, next_node) for next_node in self.graph.adj_list[node]])
+                p_values = {next_node:
+                            scipy.stats.binom_test(self.edge_counts["%s-%s"] % (node, next_node), total_reads, p=probability)
+                            for next_node in self.graph.adj_list[node]}
+
+                lowest_p_node = sorted(p_values, key=p_values.get)
+                lowest_p = p_values[lowest_p_node]
+
+                if lowest_p < 0.05:
+                    most_reads_node = lowest_p_node
+                else:
+                    # Choose first next node on linear ref (lowest id)
+                    most_reads_node = min([n for n in self.graph.adj_list[node] if n in self.linear_path_nodes])
+
+                """
                 for next_node in next_nodes:
                     n_reads = self.edge_counts["%s-%s" % (node, next_node)]
                     if next_node in self.linear_path_nodes:
@@ -139,6 +158,7 @@ class PathPredicter:
 
                         if next_node in self.linear_path_nodes:
                             has_found_candidate_on_linear_ref = True
+                """
 
                 if most_reads == 0:
                     n_ambigious += 1
@@ -160,7 +180,7 @@ class PathPredicter:
                 node = most_reads_node
 
 
-                if most_reads == 0:
+                if False and most_reads == 0:
                     # Assert we have taken linear ref path if exists
                     if any([n in self.linear_path_nodes for n in next_nodes]):
                         if node not in self.linear_path_nodes:
