@@ -147,7 +147,7 @@ class PathPredicter:
 
                 # Decide what kind of variant this is
                 if node in self.linear_path_nodes and most_reads_node not in self.linear_path_nodes:
-                    if self.graphs.blocks[most_reads_node].length() == 1:
+                    if self.graph.blocks[most_reads_node].length() == 1:
                         self.n_snps += 1
                     else:
                         n_insertions += 1
