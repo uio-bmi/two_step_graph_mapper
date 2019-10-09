@@ -69,7 +69,7 @@ def run_predict_path_single_chromosome(alignment_file_name, chromosome, graph_di
 
 
 def run_bwa_index(fasta_file_name):
-    command = "bwa-mem2 index " + fasta_file_name
+    command = "bwa index " + fasta_file_name
     subprocess.check_output(command.split())
 
 
