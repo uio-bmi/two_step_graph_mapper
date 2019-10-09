@@ -79,6 +79,7 @@ class PathPredicter:
         out_file = open("%s_%s.fasta" % (self.out_file_base_name, self.chromosome), "w")
 
         n_insertions = 0
+        n_snps = 0
         n_deletions = 0
 
         # Traverse
@@ -127,7 +128,7 @@ class PathPredicter:
                             n_special_case += 1
 
                         # If already found something on linear ref, and this does not have more reads or lower id (not insertion), ignore
-                        # This is to avoid taking insertions (going to a higher node on the linear reference when there
+                        # This is to avoid taking deletions (going to a higher node on the linear reference when there
                         # are really no reads to support such choice), i.e. instead default just to follow the linear
                         # ref
                         if has_found_candidate_on_linear_ref and n_reads == most_reads and next_node > most_reads_node:
@@ -146,7 +147,10 @@ class PathPredicter:
 
                 # Decide what kind of variant this is
                 if node in self.linear_path_nodes and most_reads_node not in self.linear_path_nodes:
-                    n_insertions += 1
+                    if self.graphs.blocks[most_reads_node].length() == 1:
+                        self.n_snps += 1
+                    else:
+                        n_insertions += 1
                 elif node in self.linear_path_nodes and most_reads_node in self.linear_path_nodes:
                     other_linear_out = [n for n in self.graph.adj_list[node] if n in self.linear_path_nodes and n != most_reads_node and n < most_reads_node]
                     if len(other_linear_out):
@@ -181,7 +185,8 @@ class PathPredicter:
                                                           text_file=True)
 
         logging.info("=== STATS FOR CHROMOSOME %s ===" % self.chromosome)
-        logging.info("N insertions/SNPs found: %d" % n_insertions)
+        logging.info("N SNPs found: %d" % n_snps)
+        logging.info("N insertions found: %d" % n_insertions)
         logging.info("N deletions found: %d" % n_deletions)
         logging.info("N ambigious choices: %d" % n_ambigious)
         logging.info("Total nodes in linear ref: %d" % len(self.linear_path_nodes))
