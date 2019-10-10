@@ -3,7 +3,7 @@ from offsetbasedgraph import IntervalCollection, Interval
 from collections import defaultdict
 import pickle
 import logging
-import scipy
+from scipy.stats import binom_test
 import numpy as np
 
 
@@ -20,11 +20,22 @@ class PathPredicter:
         self.linear_path_nodes = linear_interval_path.nodes_in_interval()
         self.linear_ref_bonus = linear_ref_bonus
         self.max_nodes_to_traverse = max_nodes_to_traverse
+        self.binom_test_cache = {}
         self.alignments = None
         self._read_alignments()
         self.edge_counts = None
         self._get_edge_counts_from_alignments()
         self.predict_path()
+
+
+    def binom_test(self, x, n, p):
+        if (x, n, p) in self.binom_test_cache:
+            return self.binom_test_cache[(x, n, p)]
+        
+        pval = binom_test(x, n, p)
+        self.binom_test_cache[(x, n, p)] = pval
+
+        return pval
 
     def _read_alignments(self):
         if self.input_is_edgecounts:
@@ -119,15 +130,16 @@ class PathPredicter:
                 most_reads_node = next_nodes[0]
                 has_found_candidate_on_linear_ref = False
 
+                """
                 # Choose the edge with lowest p-value according to a binomial test.
                 # If no significant, choose the linear ref path (first next node on linear ref)
                 probability = 1 / len(next_nodes)
-                total_reads = sum([self.edge_counts["%s-%s"] % (node, next_node) for next_node in self.graph.adj_list[node]])
+                total_reads = sum([self.edge_counts["%s-%s" % (node, next_node)] for next_node in self.graph.adj_list[node]])
                 p_values = {next_node:
-                            scipy.stats.binom_test(self.edge_counts["%s-%s"] % (node, next_node), total_reads, p=probability)
+                            self.binom_test(self.edge_counts["%s-%s" % (node, next_node)], total_reads, probability)
                             for next_node in self.graph.adj_list[node]}
 
-                lowest_p_node = sorted(p_values, key=p_values.get)
+                lowest_p_node = sorted(p_values, key=p_values.get)[0]
                 lowest_p = p_values[lowest_p_node]
 
                 if lowest_p < 0.05:
@@ -135,6 +147,13 @@ class PathPredicter:
                 else:
                     # Choose first next node on linear ref (lowest id)
                     most_reads_node = min([n for n in self.graph.adj_list[node] if n in self.linear_path_nodes])
+
+                """
+                reads_per_node = {n: self.edge_counts["%s-%s" % (node, n)] for n in self.graph.adj_list[node]}
+                most_reads_node = sorted(reads_per_node, key=reads_per_node.get, reverse=True)[0]
+                if reads_per_node[most_reads_node] < self.linear_ref_bonus:
+                    most_reads_node = min([n for n in self.graph.adj_list[node] if n in self.linear_path_nodes])
+                    
 
                 """
                 for next_node in next_nodes:
@@ -158,11 +177,10 @@ class PathPredicter:
 
                         if next_node in self.linear_path_nodes:
                             has_found_candidate_on_linear_ref = True
-                """
 
                 if most_reads == 0:
                     n_ambigious += 1
-
+                """
                 assert most_reads_node is not None
 
                 # Decide what kind of variant this is
