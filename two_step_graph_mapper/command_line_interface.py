@@ -112,6 +112,9 @@ def run_predict_path(args):
         indexed.to_file(file_name + ".indexed")
         logging.info("Wrote indexed interval to file %s" % file_name + ".indexed")
 
+    from .coordinate_mappings import make_mappings_parallel
+    make_mappings_parallel(chromosomes, args.data_dir)
+
     if not args.skip_bwa_index:
         logging.info("Running bwa index")
         run_bwa_index(args.out_file_name + ".fa")
