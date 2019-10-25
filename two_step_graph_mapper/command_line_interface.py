@@ -103,6 +103,9 @@ def run_predict_path(args):
         indexed.to_file(file_name + ".indexed")
         logging.info("Wrote indexed interval to file %s" % file_name + ".indexed")
 
+    from .coordinate_mappings import make_mappings_parallel
+    make_mappings_parallel(chromosomes, args.data_dir)
+
     if not args.skip_bwa_index:
         logging.info("Running bwa index")
         run_bwa_index(args.out_file_name + ".fa")
@@ -150,11 +153,8 @@ def run_argument_parser(args):
     subparser_map.set_defaults(func=run_map_to_path)
 
     subparser_project = subparsers.add_parser("convert_to_reference_positions", help="Convert positions in a mapped sam file to positions on reference genome")
-    subparser_project.add_argument("-s", "--sam", help="Input sam file", required=True)
     subparser_project.add_argument("-d", "--data-dir", help="Data direcoty containing the linear path intervals for the graphs", required=True)
-    subparser_project.add_argument("-l", "--linear-paths-base-name", help="Base name for linear paths. Same as --out-file-name used for predict_path.", required=True)
     subparser_project.add_argument("-c", "--chromosomes", required=True)
-    subparser_project.add_argument("-o", "--out-sam", required=True, help="Name of sam file to write modified alignments to")
     subparser_project.set_defaults(func=run_project_alignments)
 
     if len(args) == 0:
