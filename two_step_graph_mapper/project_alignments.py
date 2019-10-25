@@ -1,9 +1,11 @@
 from .util import convert_position_on_haplotype_to_position_on_linear_ref
+import sys
 from pysam import AlignmentFile
 from tqdm import tqdm
 from rough_graph_mapper.util import read_sam_fast, number_of_lines_in_file
 import logging
 from offsetbasedgraph import NumpyIndexedInterval
+import numpy as np
 
 
 def convert_position_on_haplotype_to_position_on_linear_ref(linear_ref_path, haplotype_path, position):
@@ -44,38 +46,39 @@ def convert_position_on_haplotype_to_position_on_linear_ref(linear_ref_path, hap
 def run_project_alignments(args):
     """ Project mapped sam file"""
 
-    sam = args.sam
     chromosomes = args.chromosomes.split(",")
-    graph_dir = args.data_dir
-
-    linear_ref_paths = {}
-    haplotype_paths = {}
-
-    #out_sam = AlignmentFile(args.out_sam, "w", template=AlignmentFile(sam))
-    out_sam = open(args.out_sam, "w")
-
-    logging.info("Reading linear paths")
+    coordinate_maps = {}
+    logging.info("Reading coordinate maps")
     for chromosome in tqdm(chromosomes):
-        linear_ref_paths[chromosome] = NumpyIndexedInterval.from_file(graph_dir + chromosome + "_linear_pathv2.interval")
-        haplotype_paths[chromosome] = NumpyIndexedInterval.from_file(args.linear_paths_base_name + "_" + chromosome + ".intervalcollection.indexed")
+        coordinate_maps[chromosome] = np.load("coordinate_map_" + chromosome + ".npy")
 
     logging.info("Converting")
     n_unmapped = 0
-    for sam_record in tqdm(read_sam_fast(sam), total=number_of_lines_in_file(sam)):
-        chromosome = sam_record.chromosome
-        if chromosome is None:
-            out_sam.write(sam_record.pysam_object)
-            n_unmapped += 1
+
+    for line in sys.stdin:
+        if line.startswith("@"):
+            print(line.strip())
             continue
-        #length = len(sam_record.sequence)
-        projected_start = convert_position_on_haplotype_to_position_on_linear_ref(linear_ref_paths[chromosome],
-                                                                                  haplotype_paths[chromosome],
-                                                                                  sam_record.start)
-        sam_record.set_start(projected_start)
-        if sam_record.text_line is not None:
-            out_sam.writelines(["%s\n" % ('\t'.join(sam_record.text_line))])
-        else:
-            out_sam.write(sam_record.pysam_object)
+
+        l = line.split()
+        chromosome = l[2]
+        if chromosome not in coordinate_maps:
+            n_unmapped += 1
+            print(line.strip())
+            logging.warning("Could not convert line")
+            logging.warning(line)
+            continue
+
+        pos = int(l[3])
+        try:
+            new_pos = int(coordinate_maps[chromosome][pos])
+        except IndexError:
+            logging.error("Could not get coordinate for position %d on chromosome %s" % (pos, chromosome))
+            print(line.strip())
+            continue
+
+        l[3] = str(new_pos)
+        print('\t'.join(l).strip())
 
     logging.info("%d sam records missed chromosome (unmapped)" % n_unmapped)
 
