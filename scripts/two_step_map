@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+if [ $# -ne 8  ];
+then
+    echo "Usage: two_step_map chromosomes n_threads obg_graph_dir input_fasta n_reads linear_ref_bonus bwa_index minimap_fasta"
+    exit
+fi
+
 chromosomes=$1
 threads=$2
 obg_graph_dir=$3

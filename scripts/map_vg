@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+if [ $# -ne 3 ];
+then
+    echo "Usage: map_vg N_THREADS VG_BASE_FILE_NAME INPUT_FASTA_FILE"
+    exit
+fi
+
 threads=$1
 vg_base=$2
 reads=$3
