@@ -8,7 +8,7 @@ import numpy as np
 
 
 class PathPredicter:
-    def __init__(self, alignment_file_name, graph, sequence_graph, chromosome, linear_interval_path,
+    def __init__(self, alignment_file_name, graph, sequence_graph, chromosome, linear_interval_path, variant_edges,
                  out_file_base_name, linear_ref_bonus=1, max_nodes_to_traverse=None, input_is_edgecounts=False):
         self.input_is_edgecounts = input_is_edgecounts
         self.alignment_file_name = alignment_file_name
@@ -24,6 +24,7 @@ class PathPredicter:
         self.alignments = None
         self._read_alignments()
         self.edge_counts = None
+        self.variant_edges = variant_edges
         self._get_edge_counts_from_alignments()
         self.predict_path()
 
@@ -149,11 +150,34 @@ class PathPredicter:
                     most_reads_node = min([n for n in self.graph.adj_list[node] if n in self.linear_path_nodes])
 
                 """
-                reads_per_node = {n: self.edge_counts["%s-%s" % (node, n)] for n in self.graph.adj_list[node]}
-                most_reads_node = sorted(reads_per_node, key=reads_per_node.get, reverse=True)[0]
-                if reads_per_node[most_reads_node] < self.linear_ref_bonus:
-                    most_reads_node = min([n for n in self.graph.adj_list[node] if n in self.linear_path_nodes])
-                    
+
+                # Algorithm:
+                # if there is any variant edge out with enough reads, follow that
+                # if not:
+                #  follow edge to linear ref with most reads if we are on a variant node
+                #  else: follow linear ref edge
+
+
+                # Find the variant node with most reads, but only if it has enough reads (if not take next linear ref node)
+                next_nodes = self.graph.adj_list[node]
+                if len(next_nodes) == 1:
+                    most_reads_node = next_nodes[0]
+                else:
+                    reads_per_node = {n: self.edge_counts["%s-%s" % (node, n)] for n in next_nodes if (node, n) in self.variant_edges}
+                    most_reads_nodes = sorted(reads_per_node, key=reads_per_node.get, reverse=True)
+                    if len(most_reads_nodes) > 0 and reads_per_node[most_reads_nodes[0]] > self.linear_ref_bonus:
+                        most_reads_node = most_reads_nodes[0]
+                    else:
+                        if node not in self.linear_path_nodes:
+                            # On variant node
+                            counts = {n: self.edge_counts["%s-%s" % (node, n)] for n in next_nodes if n in self.linear_path_nodes}
+                            most_reads_node = sorted(counts, key=counts.get, reverse=True)[0]
+                        else:
+                            # Not on variant node, choose next node in linear ref path
+                            next_linear_ref_node = [n for n in next_nodes if (node, n) not in self.variant_edges]
+                            assert len(next_linear_ref_node) == 1
+                            most_reads_node = next_linear_ref_node[0]
+
 
                 """
                 for next_node in next_nodes:

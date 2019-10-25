@@ -19,21 +19,6 @@ def main():
     run_argument_parser(sys.argv[1:])
 
 
-def get_variant_edges_wrapper(args):
-    chromosome = args.chromosome
-    linear_path = NumpyIndexedInterval.from_file(args.data_dir + "/" + chromosome + "_linear_pathv2.interval")
-    linear_ref_nodes = linear_path.nodes_in_interval()
-    graph = Graph.from_file(args.data_dir + "/" + chromosome + ".nobg")
-    sequence_graph = SequenceGraph.from_file(args.data_dir + "/" + chromosome + ".nobg.sequences")
-    haplotype_fasta = Fasta(args.fasta_file)
-
-    edges = get_variant_edges(chromosome, graph, sequence_graph, linear_ref_nodes, haplotype_fasta)
-
-    with open(args.out_file_name, "wb") as f:
-        pickle.dump(edges, f)
-
-    logging.info("Wrote edges to file %s" % args.out_file_name)
-
 def run_map_to_path(args):
     n_threads = args.n_threads
     if args.minimap_arguments is None:
@@ -63,14 +48,20 @@ def run_predict_path_single_chromosome(alignment_file_name, chromosome, graph_di
     sequence_graph = SequenceGraph.from_file(graph_dir + chromosome + ".nobg.sequences")
     graph = Graph.from_file(graph_dir + chromosome + ".nobg")
     linear_path = NumpyIndexedInterval.from_file(graph_dir + "/%s_linear_pathv2.interval" % chromosome)
-    PathPredicter(alignment_file_name, graph, sequence_graph, chromosome, linear_path, out_file_base_name,
+    variant_edges = pickle.load(open(graph_dir + "/%s_variant_edges.pickle" % chromosome, "rb"))
+    PathPredicter(alignment_file_name, graph, sequence_graph, chromosome, linear_path, variant_edges, out_file_base_name,
                   linear_ref_bonus=linear_ref_bonus, max_nodes_to_traverse=max_nodes_to_traverse,
                   input_is_edgecounts=input_is_edgecounts)
 
 
 def run_bwa_index(fasta_file_name):
-    command = "bwa index " + fasta_file_name
-    subprocess.check_output(command.split())
+    command = "bwa-mem2 index " + fasta_file_name
+    try:
+        subprocess.check_output(command.split())
+    except subprocess.CalledProcessError as e:
+        logging.warning("BWA MEM 2 returned exit code 1 (probably), but this is a known bug and can probably be ignored")
+        logging.info("%s\n%s\n%s" % (e.cmd, e.returncode, e.output))
+        #raise RuntimeError("command '{}' return with error (code {}): {}".format(e.cmd, e.returncode, e.output))
 
 
 def run_predict_path(args):
@@ -165,14 +156,6 @@ def run_argument_parser(args):
     subparser_project.add_argument("-c", "--chromosomes", required=True)
     subparser_project.add_argument("-o", "--out-sam", required=True, help="Name of sam file to write modified alignments to")
     subparser_project.set_defaults(func=run_project_alignments)
-
-    s = subparsers.add_parser("get_variant_edges", help="Utility functionality: Finds edges supported by a haploid fasta sequence through the graph")
-    s.add_argument("-f", "--fasta_file", help="Haplotype fasta file", required=True)
-    s.add_argument("-c", "--chromosome", required=True)
-    s.add_argument("-d", "--data-dir", required=True)
-    s.add_argument("-o", "--out_file_name", required=True)
-    s.set_defaults(func=get_variant_edges_wrapper)
-
 
     if len(args) == 0:
         parser.print_help()
