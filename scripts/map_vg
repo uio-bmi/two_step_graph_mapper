@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+threads=$1
+vg_base=$2
+reads=$3
+
+vg map -d $vg_base -f $reads -t $threads --refpos-table > vg.pos
+

@@ -12,7 +12,7 @@ minimap_fasta=$8
 echo "Starting two step"
 date
 echo "Rough initial mapping"
-bwa-mem2 mem -t $threads $bwa_index simulated_reads.fa > rough_linear.sam
+bwa-mem2 mem -t $threads $bwa_index simulated_reads.fa | awk '$2 < 256' | cut -f 1-15 > rough_linear.sam
 date
 
 echo "MDZ align"
@@ -25,15 +25,6 @@ time two_step_graph_mapper predict_path -t $threads --linear-ref-bonus $linear_r
 echo "Run tuned bwa"
 date
 # The following maps and splits by chromosomes in one line (avoiding disk write)
-map_linear $threads $bwa_index $minimap_fasta $sim_fasta | awk '{print>"tmp_"$3".sam"}'
+map_linear $threads $bwa_index $minimap_fasta $sim_fasta | two_step_graph_mapper convert_to_reference_positions -d $obg_graph_dir -c $chromosomes > two_step_graph_mapper_on_reference.sam
 
-date
-
-echo "Convert to linear ref coordinates"
-for chrom in $(echo $chromosomes | tr "," "\n")
-    do
-    two_step_graph_mapper convert_to_reference_positions -s tmp_$chrom.sam -d $obg_graph_dir/ -l predicted_path -c $chrom -o two_step_graph_mapper_on_reference_chr$chrom.sam &
-done
-wait
-
-rm tmp_*.sam
+merge_with_rough rough_linear.sam two_step_graph_mapper_on_reference.sam > two_step_final.sam
