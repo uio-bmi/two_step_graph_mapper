@@ -15,6 +15,7 @@ graph_read_simulator_prepare_data $population_vcf $individual_vcf $linear_ref_fa
 
 # Simulate reads with two different error rates
 coverage=0.5
+
 # "Normal" error rate
 cat haplotypes.txt | parallel --line-buffer -j 44 "graph_read_simulator simulate_reads -s 0.01 -i 0.001 -d 0.001 {} $coverage" | graph_read_simulator assign_ids positions.tsv simulated_reads.fa
 
@@ -23,12 +24,10 @@ cat haplotypes.txt | parallel --line-buffer -j 44 "graph_read_simulator simulate
 
 # Get number of reads
 n_reads=$(wc -l positions.tsv | awk '{print $1}')
-
-# Run vg
-map_vg $n_threads $vg_graph_base simulated_reads.fa && cat vg.pos | numpy_alignments store pos vg $n_reads
-map_vg $n_threads $vg_graph_base simulated_reads_low_error.fa && cat vg.pos | numpy_alignments store pos vg_low_error $n_reads
+echo "Total reads: $n_reads"
 
 # Run hisat2
+echo "Running hisat2"
 hisat2 -p $n_threds -f simulated_reads.fa --no-spliced-alignment -x $hisat2_index | numpy_alignments store sam hisat2 $n_reads
 hisat2 -p $n_threds -f simulated_reads_low_error.fa --no-spliced-alignment -x $hisat2_index | numpy_alignments store sam hisat2_low_error $n_reads
 
@@ -37,3 +36,10 @@ bwa-mem2 mem -t $n_threads $bwa_index simulated_reads.fa | numpy_alignments stor
 
 # Run bwa tuned
 map_linear $n_threads $bwa_index $linear_ref_fasta simulated_reads.fa | numpy_alignments store sam linear $n_reads
+
+# Run vg
+echo "Running vg"
+map_vg $n_threads $vg_graph_base simulated_reads.fa && cat vg.pos | numpy_alignments store pos vg $n_reads
+map_vg $n_threads $vg_graph_base simulated_reads_low_error.fa && cat vg.pos | numpy_alignments store pos vg_low_error $n_reads
+
+
