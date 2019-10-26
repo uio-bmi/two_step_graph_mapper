@@ -216,7 +216,7 @@ class PathPredicter:
 
                 elif node in self.linear_path_nodes and most_reads_node in self.linear_path_nodes:
                     other_linear_out = [n for n in self.graph.adj_list[node] if n in self.linear_path_nodes and n != most_reads_node and n < most_reads_node]
-                    if len(other_linear_out):
+                    if len(other_linear_out) > 0:
                         n_deletions += 1
 
                 edges_chosen.add("%d-%d" % (node, most_reads_node))
