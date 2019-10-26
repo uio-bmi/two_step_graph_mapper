@@ -6,6 +6,7 @@ from rough_graph_mapper.util import read_sam_fast, number_of_lines_in_file
 import logging
 from offsetbasedgraph import NumpyIndexedInterval
 import numpy as np
+from collections import defaultdict
 
 
 def convert_position_on_haplotype_to_position_on_linear_ref(linear_ref_path, haplotype_path, position):
@@ -54,6 +55,7 @@ def run_project_alignments(args):
 
     logging.info("Converting")
     n_unmapped = 0
+    unmapped_counts_per_chrom = defaultdict(int)
 
     for line in sys.stdin:
         if line.startswith("@"):
@@ -65,8 +67,9 @@ def run_project_alignments(args):
         if chromosome not in coordinate_maps:
             n_unmapped += 1
             print(line.strip())
-            logging.warning("Could not convert line")
-            logging.warning(line)
+            #logging.warning("Could not convert line")
+            #logging.warning(line)
+            unmapped_counts_per_chrom[chromosome] += 1
             continue
 
         pos = int(l[3])
@@ -81,4 +84,6 @@ def run_project_alignments(args):
         print('\t'.join(l).strip())
 
     logging.info("%d sam records missed chromosome (unmapped)" % n_unmapped)
+    for chrom, count in unmapped_counts_per_chrom.items():
+        logging.info("    Chromosome %s: %d" % (chrom, count))
 

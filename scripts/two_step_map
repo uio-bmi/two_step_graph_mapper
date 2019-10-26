@@ -18,7 +18,7 @@ minimap_fasta=$8
 echo "Starting two step"
 date
 echo "Rough initial mapping"
-bwa-mem2 mem -t $threads $bwa_index simulated_reads.fa | awk '$2 < 256' | cut -f 1-15 > rough_linear.sam
+bwa-mem2 mem -t $threads $bwa_index simulated_reads.fa > rough_linear.sam
 date
 
 echo "MDZ align"
@@ -33,4 +33,4 @@ date
 # The following maps and splits by chromosomes in one line (avoiding disk write)
 map_linear $threads predicted_path.fa predicted_path.fa $sim_fasta | two_step_graph_mapper convert_to_reference_positions -d $obg_graph_dir -c $chromosomes > two_step_graph_mapper_on_reference.sam
 
-merge_with_rough rough_linear.sam two_step_graph_mapper_on_reference.sam > two_step_final.sam
+grep -v '^@' rough_linear.sam | awk '$2 < 256' | merge_sams_with_rough - two_step_graph_mapper_on_reference.sam > two_step_final.sam
