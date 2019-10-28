@@ -1,19 +1,6 @@
 import logging
 
 
-def get_variant_edges(chromosome, graph, sequence_graph, linear_ref_nodes, haplotype_fasta):
-
-    # Traverse
-    first_nodes = graph.get_first_blocks()
-    assert len(first_nodes) == 1
-    logging.info("N nodes in graph: %d" % len(graph.blocks))
-    node = first_nodes[0]
-    assert node in linear_ref_nodes, "Start node should be in linear ref"
-    offset = -1
-
-    return
-
-
 def convert_position_on_haplotype_to_position_on_linear_ref(linear_ref_path, haplotype_path, position):
     start_position = position
     haplotype = haplotype_path
