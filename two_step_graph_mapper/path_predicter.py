@@ -128,28 +128,6 @@ class PathPredicter:
                 node = next_nodes[0]
             else:
                 most_reads = 0
-                most_reads_node = next_nodes[0]
-                has_found_candidate_on_linear_ref = False
-
-                """
-                # Choose the edge with lowest p-value according to a binomial test.
-                # If no significant, choose the linear ref path (first next node on linear ref)
-                probability = 1 / len(next_nodes)
-                total_reads = sum([self.edge_counts["%s-%s" % (node, next_node)] for next_node in self.graph.adj_list[node]])
-                p_values = {next_node:
-                            self.binom_test(self.edge_counts["%s-%s" % (node, next_node)], total_reads, probability)
-                            for next_node in self.graph.adj_list[node]}
-
-                lowest_p_node = sorted(p_values, key=p_values.get)[0]
-                lowest_p = p_values[lowest_p_node]
-
-                if lowest_p < 0.05:
-                    most_reads_node = lowest_p_node
-                else:
-                    # Choose first next node on linear ref (lowest id)
-                    most_reads_node = min([n for n in self.graph.adj_list[node] if n in self.linear_path_nodes])
-
-                """
 
                 # Algorithm:
                 # if there is any variant edge out with enough reads, follow that
@@ -179,32 +157,6 @@ class PathPredicter:
                             most_reads_node = next_linear_ref_node[0]
 
 
-                """
-                for next_node in next_nodes:
-                    n_reads = self.edge_counts["%s-%s" % (node, next_node)]
-                    if next_node in self.linear_path_nodes:
-                        n_reads += self.linear_ref_bonus
-
-                    if n_reads > most_reads or (n_reads >= most_reads and next_node in self.linear_path_nodes):
-                        if node not in self.linear_path_nodes:
-                            n_special_case += 1
-
-                        # If already found something on linear ref, and this does not have more reads or lower id (not insertion), ignore
-                        # This is to avoid taking deletions (going to a higher node on the linear reference when there
-                        # are really no reads to support such choice), i.e. instead default just to follow the linear
-                        # ref
-                        if has_found_candidate_on_linear_ref and n_reads == most_reads and next_node > most_reads_node:
-                            continue  # Ignore this alternative
-
-                        most_reads_node = next_node
-                        most_reads = n_reads
-
-                        if next_node in self.linear_path_nodes:
-                            has_found_candidate_on_linear_ref = True
-
-                if most_reads == 0:
-                    n_ambigious += 1
-                """
                 assert most_reads_node is not None
 
                 # Decide what kind of variant this is
@@ -221,22 +173,6 @@ class PathPredicter:
 
                 edges_chosen.add("%d-%d" % (node, most_reads_node))
                 node = most_reads_node
-
-
-                if False and most_reads == 0:
-                    # Assert we have taken linear ref path if exists
-                    if any([n in self.linear_path_nodes for n in next_nodes]):
-                        if node not in self.linear_path_nodes:
-                            logging.error("Chose node %d as next, but it is not in linear ref." % node)
-                            logging.error("Next nodes are: %s" % next_nodes)
-
-                            for next_node in next_nodes:
-                                if next_node in self.linear_path_nodes:
-                                    logging.error("    Node %d is in linear ref" % next_node)
-                                else:
-                                    logging.error("    Node %d is not in linear ref" % next_node)
-
-                            raise Exception("Could not traverse correctly")
 
         # Find statistics of chosen nodes
         nodes_chosen = set(path)
