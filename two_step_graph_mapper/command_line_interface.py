@@ -12,7 +12,6 @@ from .path_predicter import PathPredicter
 from rough_graph_mapper.util import run_hybrid_between_bwa_and_minimap, run_bwa_mem
 from .project_alignments import run_project_alignments
 from pyfaidx import Fasta
-from .util import get_variant_edges
 import pickle
 
 def main():
