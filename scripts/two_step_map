@@ -33,4 +33,11 @@ date
 # The following maps and splits by chromosomes in one line (avoiding disk write)
 map_linear $threads predicted_path.fa predicted_path.fa $sim_fasta | two_step_graph_mapper convert_to_reference_positions -d $obg_graph_dir -c $chromosomes > two_step_graph_mapper_on_reference.sam
 
-grep -v '^@' rough_linear.sam | awk '$2 < 256' | merge_sams_with_rough - two_step_graph_mapper_on_reference.sam > two_step_final.sam
+echo "Done map linear"
+date
+
+echo "Merge with rough"
+grep -v '^@' rough_linear.sam | cut -f 1-15 | awk '$2 < 256' | merge_sams_with_rough - two_step_graph_mapper_on_reference.sam > two_step_final.sam
+
+date
+echo "Done with all."

@@ -63,7 +63,13 @@ def run_project_alignments(args):
             continue
 
         l = line.split()
-        chromosome = l[2]
+        try:
+            chromosome = l[2]
+        except IndexError:
+            logging.error("Could not parse this SAM line: %s")
+            logging.error(l)
+            continue
+
         if chromosome not in coordinate_maps:
             n_unmapped += 1
             print(line.strip())
