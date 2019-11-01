@@ -12,6 +12,14 @@ cd two_step_graph_mapper
 pip3 install .
 ```
 
+Pip-installing will enable you to run `two_step_graph_mapper` on the commandline. However, there are also some wrapper-scripts in the scripts-directory
+that are needed when running pipelines using this package (e.g. for reproducing the benchmarking experiments). Make sure these are available in your path, e.g. by
+adding them to your bash profile:
+```bash
+cd scripts
+echo "export PATH=$(pwd):\${PATH}" >> ~/.profile
+```
+
 ## How to use 
 First, you need some graphalignments, e.g. from running vg or rough_graph_mapper. 
 If using the rough_graph_mapper, you will need to specify the chromosomes that you are running on after `--chromosomes`.
