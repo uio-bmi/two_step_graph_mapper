@@ -1,17 +1,16 @@
 #!/usr/bin/env bash
-population_vcf=$1
-individual_vcf=$2
-individual_ID=$3
-chromosomes=$4
-n_chromosomes=$5
-linear_ref_fasta=$6
-n_threads=$7
-vg_graph_base=$8
-hisat2_index=$9
-bwa_index=${10}
+individual_vcf=$1
+individual_ID=$2
+chromosomes=$3
+n_chromosomes=$4
+linear_ref_fasta=$5
+n_threads=$6
+vg_graph_base=$7
+hisat2_index=$8
+bwa_index=$9
 
 # Prepare the simulation data
-#graph_read_simulator_prepare_data $population_vcf $individual_vcf $linear_ref_fasta $chromosomes $n_chromosomes $individual_ID
+graph_read_simulator_prepare_data $population_vcf $individual_vcf $linear_ref_fasta $chromosomes $n_chromosomes $individual_ID
 
 # Simulate reads with two different error rates
 coverage=1.1
