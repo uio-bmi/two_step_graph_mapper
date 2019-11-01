@@ -18,15 +18,15 @@ minimap_fasta=$8
 echo "Starting two step"
 date
 echo "Rough initial mapping"
-#bwa-mem2 mem -t $threads $bwa_index $map_fasta > rough_linear.sam
+bwa-mem2 mem -t $threads $bwa_index $map_fasta > rough_linear.sam
 date
 
 echo "MDZ align"
-#time rough_graph_mapper mdz_align_bam -b rough_linear.sam -d $obg_graph_dir -o mdzaligned -c $chromosomes
+time rough_graph_mapper mdz_align_bam -b rough_linear.sam -d $obg_graph_dir -o mdzaligned -c $chromosomes
 echo "Done mdz align. Predicting path"
 date
 
-#time two_step_graph_mapper predict_path -t $threads --linear-ref-bonus $linear_ref_bonus -d $obg_graph_dir -a mdzaligned -c $chromosomes -o predicted_path --input-is-edgecounts True
+time two_step_graph_mapper predict_path -t $threads --linear-ref-bonus $linear_ref_bonus -d $obg_graph_dir -a mdzaligned -c $chromosomes -o predicted_path --input-is-edgecounts True
 
 echo "Run tuned bwa"
 date

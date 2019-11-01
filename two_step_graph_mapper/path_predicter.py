@@ -42,7 +42,9 @@ class PathPredicter:
         if self.input_is_edgecounts:
             self.alignments = pickle.load(open(self.alignment_file_name + "_" + self.chromosome + ".edgecounts", "rb"))
         elif self.alignment_file_name.endswith(".json"):
+            logging.info("Reading vg alignments")
             self.alignments = vg_json_file_to_interval_collection(self.alignment_file_name).intervals
+            logging.info("Read vg alignments")
         elif self.alignment_file_name.endswith(".graphnodes"):
             self.alignments = (Interval(0, 1, [int(n) for n in line.strip().split()[1].split(",")])
                                for line in open(self.alignment_file_name))
@@ -64,11 +66,15 @@ class PathPredicter:
 
             return
 
+        logging.info("Getting edge counts")
         edge_counts = defaultdict(int)
         graph_min_node = self.graph.blocks.node_id_offset - 1
         graph_max_node = self.graph.blocks.max_node_id()
 
-        for alignment in self.alignments:
+        for i, alignment in enumerate(self.alignments):
+            if i % 10000000 == 0:
+                logging.info("%d alignments processed" % i)
+
             if abs(alignment.region_paths[0]) < graph_min_node or abs(alignment.region_paths[0]) > graph_max_node:
                 continue
 
